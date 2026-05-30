@@ -15,21 +15,18 @@ class ProfileView extends GetView<ProfileController> {
   Widget build(BuildContext context) {
     final ad = AdService.to;
     return Scaffold(
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppTheme.primaryStart,
         elevation: 0,
         title: const Text('我的',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
       ),
-      body: ListView(
-        padding: EdgeInsets.zero,
+      body: Column(
         children: [
-          // 用户信息卡
+          // 用户信息卡（固定不滚动）
           Container(
-            decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
-            padding: EdgeInsets.fromLTRB(
-                20, MediaQuery.of(context).padding.top + 56, 20, 28),
+            color: AppTheme.primaryStart,
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
             child: Row(
               children: [
                 CircleAvatar(
@@ -79,8 +76,12 @@ class ProfileView extends GetView<ProfileController> {
               ],
             ),
           ),
+          // 可滚动列表区域
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
           const SizedBox(height: 8),
-          // 功能入口
           _SectionHeader(title: '财务工具'),
           _MenuItem(icon: Icons.bar_chart, label: '统计分析', subtitle: '查看收支分布和月度趋势',
               onTap: () {
@@ -119,6 +120,9 @@ class ProfileView extends GetView<ProfileController> {
             label: '关于记乐多',
             subtitle: 'MoneyLog v1.0.0',
             onTap: () => showAboutDialog(context: context, applicationName: '记乐多 · MoneyLog', applicationVersion: '1.0.0'),
+          ),
+              ],
+            ),
           ),
         ],
       ),

@@ -11,7 +11,15 @@ class DailyCheckinView extends GetView<DailyCheckinController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('每日签到')),
+      appBar: AppBar(
+        backgroundColor: AppTheme.primaryStart,
+        elevation: 0,
+        title: const Text('每日签到', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: GetBuilder<DailyCheckinController>(
         builder: (_) => Stack(
           children: [

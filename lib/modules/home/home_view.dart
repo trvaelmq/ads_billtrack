@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/services/ad_service.dart';
 import '../../core/services/bill_service.dart';
@@ -23,6 +24,11 @@ class HomeView extends StatelessWidget {
     return Stack(children: [
       Scaffold(
         extendBodyBehindAppBar: true,
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => Get.toNamed(Routes.addBill),
+          backgroundColor: AppTheme.accent,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -116,11 +122,8 @@ class HomeView extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 14),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _QuickAddCard(
-                        onTap: () => Get.toNamed(Routes.addBill)),
-                  ),
+                  _BillSection(bill: bill, context: context),
+                  const SizedBox(height: 80),
                 ],
               ),
             ),
@@ -408,40 +411,138 @@ class _InsightsCard extends StatelessWidget {
   }
 }
 
-class _QuickAddCard extends StatelessWidget {
-  final VoidCallback onTap;
-  const _QuickAddCard({required this.onTap});
+// ── Bill Section ──────────────────────────────────────────────────────────────
+
+class _BillSection extends StatelessWidget {
+  final BillService bill;
+  final BuildContext context;
+  const _BillSection({required this.bill, required this.context});
+
+  @override
+  Widget build(BuildContext ctx) {
+    final grouped = bill.billsByDate;
+    if (grouped.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: AppTheme.cardDecoration,
+          child: const Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text('💸', style: TextStyle(fontSize: 40)),
+              SizedBox(height: 8),
+              Text('本月还没有账单', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
+              SizedBox(height: 4),
+              Text('点击右下角 + 记录第一笔', style: TextStyle(color: Colors.grey, fontSize: 12)),
+            ]),
+          ),
+        ),
+      );
+    }
+
+    final keys = grouped.keys.toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Row(children: [
+            Text('本月账单', style: AppTheme.headline),
+            const Spacer(),
+            Text('${bill.bills.length} 笔',
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+          ]),
+        ),
+        ...keys.map((dateKey) {
+          final items      = grouped[dateKey]!;
+          final dayExpense = items.where((b) => b.isExpense).fold(0.0, (s, b) => s + b.amount);
+          final dayIncome  = items.where((b) => !b.isExpense).fold(0.0, (s, b) => s + b.amount);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                child: Row(children: [
+                  Text(dateKey,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textSecondary)),
+                  const Spacer(),
+                  if (dayExpense > 0)
+                    Text('支出 ¥${dayExpense.toStringAsFixed(2)}',
+                        style: const TextStyle(fontSize: 11, color: AppTheme.expenseRed)),
+                  if (dayExpense > 0 && dayIncome > 0)
+                    const SizedBox(width: 8),
+                  if (dayIncome > 0)
+                    Text('收入 ¥${dayIncome.toStringAsFixed(2)}',
+                        style: const TextStyle(fontSize: 11, color: AppTheme.incomeGreen)),
+                ]),
+              ),
+              ...items.map((b) => _HomeBillItem(
+                record: b,
+                onDelete: () => _confirmDelete(ctx, b, bill),
+              )),
+            ],
+          );
+        }),
+      ],
+    );
+  }
+
+  void _confirmDelete(BuildContext ctx, BillRecord b, BillService bill) {
+    showDialog(
+      context: ctx,
+      builder: (_) => AlertDialog(
+        title: const Text('删除账单'),
+        content: const Text('确认删除这笔账单？'),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text('取消')),
+          TextButton(
+            onPressed: () { bill.deleteBill(b.id); Get.back(); },
+            child: const Text('删除', style: TextStyle(color: AppTheme.expenseRed)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeBillItem extends StatelessWidget {
+  final BillRecord record;
+  final VoidCallback onDelete;
+  const _HomeBillItem({required this.record, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
+    final cat = AppConstants.categoryById(record.category);
     return GestureDetector(
-      onTap: onTap,
+      onLongPress: onDelete,
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [AppTheme.primaryStart, AppTheme.primaryEnd],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+        decoration: AppTheme.cardDecoration,
+        child: ListTile(
+          leading: Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(
+                color: cat.color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12)),
+            child: Center(child: Text(cat.emoji, style: const TextStyle(fontSize: 22))),
           ),
-          borderRadius: BorderRadius.circular(16),
+          title: Text(cat.label,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+          subtitle: record.note.isNotEmpty
+              ? Text(record.note,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey), maxLines: 1)
+              : Text(DateFormat('HH:mm').format(record.date),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          trailing: Text(
+            '${record.isExpense ? '-' : '+'}¥${record.amount.toStringAsFixed(2)}',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: record.isExpense ? AppTheme.expenseRed : AppTheme.incomeGreen,
+            ),
+          ),
         ),
-        child: const Row(children: [
-          Icon(Icons.add_circle_outline, color: Colors.white, size: 26),
-          SizedBox(width: 12),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('记一笔',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15)),
-            Text('快速记录今天的收支',
-                style: TextStyle(color: Colors.white70, fontSize: 12)),
-          ]),
-          Spacer(),
-          Icon(Icons.chevron_right, color: Colors.white70),
-        ]),
       ),
     );
   }

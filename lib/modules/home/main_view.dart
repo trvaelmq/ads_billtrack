@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'main_controller.dart';
 import 'home_view.dart';
-import '../bill/bill_view.dart';
+import '../tools/tools_view.dart';
 import '../report/report_view.dart';
 import '../profile/profile_view.dart';
 import '../../core/theme/app_theme.dart';
@@ -14,8 +14,8 @@ class MainView extends GetView<MainController> {
   Widget build(BuildContext context) {
     final pages = const [
       HomeView(),
-      BillView(),
       ReportView(),
+      ToolsView(),
       ProfileView(),
     ];
 
@@ -57,11 +57,11 @@ class MainView extends GetView<MainController> {
               items: [
                 _item(Icons.home_outlined, Icons.home_rounded, '首页', 0,
                     controller.currentIndex.value),
-                _item(Icons.receipt_long_outlined,
-                    Icons.receipt_long_rounded, '账单', 1,
-                    controller.currentIndex.value),
                 _item(Icons.bar_chart_outlined, Icons.bar_chart_rounded,
-                    '统计', 2, controller.currentIndex.value),
+                    '统计', 1, controller.currentIndex.value),
+                _item(Icons.calculate_outlined,
+                    Icons.calculate_rounded, '工具', 2,
+                    controller.currentIndex.value),
                 _item(Icons.person_outline_rounded, Icons.person_rounded,
                     '我的', 3, controller.currentIndex.value),
               ],

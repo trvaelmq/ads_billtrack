@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/ad_config.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/services/ad_service.dart';
 import '../../widgets/coin_float_animation.dart';
 import 'ad_center_controller.dart';
@@ -15,7 +16,13 @@ class AdCenterView extends GetView<AdCenterController> {
       children: [
         Scaffold(
           appBar: AppBar(
-            title: const Text('签到'),
+            backgroundColor: AppTheme.primaryStart,
+            elevation: 0,
+            title: const Text('签到', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+              onPressed: () => Get.back(),
+            ),
             actions: [
               Obx(() => Padding(
                     padding: const EdgeInsets.only(right: 16),

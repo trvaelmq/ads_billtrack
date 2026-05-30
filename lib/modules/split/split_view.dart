@@ -26,7 +26,15 @@ class _SplitViewState extends State<SplitView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('AA 分摊计算器')),
+      appBar: AppBar(
+        backgroundColor: AppTheme.primaryStart,
+        elevation: 0,
+        title: const Text('AA 分摊计算器', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(

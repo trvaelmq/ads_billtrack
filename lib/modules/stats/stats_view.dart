@@ -17,7 +17,14 @@ class StatsView extends GetView<StatsController> {
     final bill = controller.bill;
     return Scaffold(
           appBar: AppBar(
-            title: Obx(() => Text('统计 · ${bill.currentMonthLabel}')),
+            backgroundColor: AppTheme.primaryStart,
+            elevation: 0,
+            title: Obx(() => Text('统计 · ${bill.currentMonthLabel}',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+              onPressed: () => Get.back(),
+            ),
             actions: [
               IconButton(icon: const Icon(Icons.chevron_left, color: Colors.white),
                   onPressed: () => bill.changeMonth(-1)),

@@ -13,7 +13,14 @@ class BudgetDetailView extends GetView<BudgetDetailController> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${cat.emoji} ${cat.label}'),
+        backgroundColor: AppTheme.primaryStart,
+        elevation: 0,
+        title: Text('${cat.emoji} ${cat.label}',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          onPressed: () => Get.back(),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined, color: Colors.white),

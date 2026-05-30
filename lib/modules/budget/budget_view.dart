@@ -12,7 +12,15 @@ class BudgetView extends GetView<BudgetController> {
   Widget build(BuildContext context) {
     final bill = BillService.to;
     return Scaffold(
-      appBar: AppBar(title: const Text('预算管理')),
+      appBar: AppBar(
+        backgroundColor: AppTheme.primaryStart,
+        elevation: 0,
+        title: const Text('预算管理', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          onPressed: () => Get.back(),
+        ),
+      ),
       body: Obx(() {
         final expenses  = bill.expenseByCategory;
         final budgets   = controller.budgets;
