@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 class AppTheme {
   // ── New palette ─────────────────────────────────────────────────────
   static const Color primaryStart   = Color(0xFF6C5CE7);
-  static const Color primaryEnd     = Color(0xFFa29bfe);
+  static const Color primaryEnd     = Color(0xFFA29BFE);
   static const Color background     = Color(0xFFF8F9FA);
   static const Color cardColor      = Color(0xFFFFFFFF);
   static const Color accent         = Color(0xFF6C5CE7);
