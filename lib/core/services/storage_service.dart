@@ -20,6 +20,10 @@ class StorageService {
     _prefs   = await SharedPreferences.getInstance();
   }
 
+  static Future<void> initForTest() async {
+    _prefs = await SharedPreferences.getInstance();
+  }
+
   // ── 用户信息 ──────────────────────────────────────────────────────
   static bool   get isFirstLaunch  => _prefs.getBool('first_launch') ?? true;
   static Future<void> setFirstLaunchDone() => _prefs.setBool('first_launch', false);
@@ -145,13 +149,15 @@ class StorageService {
 
   // ── 自定义分类 ────────────────────────────────────────────────────
   static List<Map<String, dynamic>> get customCategories {
-    final raw = _prefs.getString('custom_categories_json');
+    final raw = _prefs.getString('custom_categories');
     if (raw == null) return [];
-    final list = jsonDecode(raw) as List<dynamic>;
-    return list.cast<Map<String, dynamic>>();
+    return List<Map<String, dynamic>>.from(
+      (jsonDecode(raw) as List).cast<Map<String, dynamic>>(),
+    );
   }
 
-  static Future<void> saveCustomCategories(List<Map<String, dynamic>> cats) async {
-    await _prefs.setString('custom_categories_json', jsonEncode(cats));
+  static Future<void> saveCustomCategories(
+      List<Map<String, dynamic>> cats) async {
+    await _prefs.setString('custom_categories', jsonEncode(cats));
   }
 }
