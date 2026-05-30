@@ -142,4 +142,16 @@ class StorageService {
       ..watchedAt   = DateTime.now();
     await _adBox.put(record.id, record);
   }
+
+  // ── 自定义分类 ────────────────────────────────────────────────────
+  static List<Map<String, dynamic>> get customCategories {
+    final raw = _prefs.getString('custom_categories_json');
+    if (raw == null) return [];
+    final list = jsonDecode(raw) as List<dynamic>;
+    return list.cast<Map<String, dynamic>>();
+  }
+
+  static Future<void> saveCustomCategories(List<Map<String, dynamic>> cats) async {
+    await _prefs.setString('custom_categories_json', jsonEncode(cats));
+  }
 }
