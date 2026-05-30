@@ -21,15 +21,6 @@ class HomeView extends StatelessWidget {
     final statusBarH = MediaQuery.of(context).padding.top;
 
     return Stack(children: [
-      Positioned(
-        top: 0,
-        left: 0,
-        right: 0,
-        child: Container(
-          height: statusBarH + 56,
-          decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
-        ),
-      ),
       Scaffold(
         extendBodyBehindAppBar: true,
         appBar: AppBar(
@@ -85,48 +76,55 @@ class HomeView extends StatelessWidget {
             budgets: StorageService.budgets,
           );
 
-          return ListView(
-            padding: EdgeInsets.only(
-                top: statusBarH + 56 + 16, bottom: 24, left: 0, right: 0),
-            children: [
-              if (overBudget.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: _OverBudgetBanner(categories: overBudget),
-                ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _MonthSummaryCard(
-                  expense: bill.monthlyExpense.value,
-                  income: bill.monthlyIncome.value,
-                ),
+          return Column(children: [
+            Container(
+              height: statusBarH + 56,
+              decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.only(top: 16, bottom: 24),
+                children: [
+                  if (overBudget.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      child: _OverBudgetBanner(categories: overBudget),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _MonthSummaryCard(
+                      expense: bill.monthlyExpense.value,
+                      income: bill.monthlyIncome.value,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _CalendarEntryCard(),
+                  ),
+                  const SizedBox(height: 14),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _Top3Categories(
+                        entries: bill.topExpenseCategories(3)),
+                  ),
+                  if (insights.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _InsightsCard(insights: insights),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _QuickAddCard(
+                        onTap: () => Get.toNamed(Routes.addBill)),
+                  ),
+                ],
               ),
-              const SizedBox(height: 14),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _CalendarEntryCard(),
-              ),
-              const SizedBox(height: 14),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _Top3Categories(
-                    entries: bill.topExpenseCategories(3)),
-              ),
-              if (insights.isNotEmpty) ...[
-                const SizedBox(height: 14),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _InsightsCard(insights: insights),
-                ),
-              ],
-              const SizedBox(height: 14),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _QuickAddCard(
-                    onTap: () => Get.toNamed(Routes.addBill)),
-              ),
-            ],
-          );
+            ),
+          ]);
         }),
       ),
       Obx(() => ad.showCoinAnimation.value
