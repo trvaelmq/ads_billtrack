@@ -1,0 +1,283 @@
+import 'package:ads_billtrack/widgets/banner_ad_widget.dart';
+import 'package:ads_billtrack/widgets/native_express_ad_widget.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../core/constants/ad_config.dart';
+import '../../core/constants/app_constants.dart';
+import '../../core/theme/app_theme.dart';
+import 'stats_controller.dart';
+
+class StatsView extends GetView<StatsController> {
+  const StatsView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final bill = controller.bill;
+    return Scaffold(
+          appBar: AppBar(
+            title: Obx(() => Text('统计 · ${bill.currentMonthLabel}')),
+            actions: [
+              IconButton(icon: const Icon(Icons.chevron_left, color: Colors.white),
+                  onPressed: () => bill.changeMonth(-1)),
+              IconButton(icon: const Icon(Icons.chevron_right, color: Colors.white),
+                  onPressed: () => bill.isCurrentMonth ? null : bill.changeMonth(1)),
+            ],
+          ),
+          body: Obx(() {
+            final expByCat = bill.expenseByCategory;
+            final last6    = bill.last6MonthsStats;
+            return Container(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              child: Column(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                    ),
+                    child: const BannerAdWidget(height: 60),
+                  ),
+                  const SizedBox(height: 4),
+                  _ExpensePieChart(expByCat: expByCat),
+                  const SizedBox(height: 4),
+                  _BarChartCard(last6: last6),
+                  const SizedBox(height: 4),
+                  Expanded(
+                    child: defaultTargetPlatform == TargetPlatform.iOS
+                        ? LayoutBuilder(
+                            builder: (context, constraints) => Center(
+                              child: SizedBox(
+                                width: constraints.maxWidth + 32,
+                                child: NativeExpressAdWidget(
+                                  height: constraints.maxHeight,
+                                  posId: AdConfig.detailBannerPosId,
+                                ),
+                              ),
+                            ),
+                          )
+                        : Container(
+                            margin: const EdgeInsets.only(top: 20),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.all(Radius.circular(8)),
+                            ),
+                            child: BannerAdWidget(height: 60, posId: AdConfig.detailBannerPosId),
+                          ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            );
+          }),
+    );
+  }
+}
+
+// ── 支出饼图 ──────────────────────────────────────────────────────
+class _ExpensePieChart extends StatelessWidget {
+  final Map<String, double> expByCat;
+  const _ExpensePieChart({required this.expByCat});
+
+  @override
+  Widget build(BuildContext context) {
+    final total = expByCat.values.fold(0.0, (s, v) => s + v);
+    final entries = expByCat.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('支出构成', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            if (total == 0)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text('暂无支出数据', style: TextStyle(color: Colors.grey)),
+                ),
+              )
+            else
+              Row(
+                children: [
+                  SizedBox(
+                    height: 140, width: 160,
+                    child: PieChart(PieChartData(
+                      sectionsSpace: 2,
+                      centerSpaceRadius: 40,
+                      sections: entries.map((e) {
+                        final cat = AppConstants.categoryById(e.key);
+                        return PieChartSectionData(
+                          value: e.value,
+                          color: cat.color,
+                          radius: 40,
+                          title: total > 0 ? '${(e.value / total * 100).toStringAsFixed(0)}%' : '',
+                          titleStyle: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
+                        );
+                      }).toList(),
+                    )),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: entries.take(6).map((e) {
+                        final cat = AppConstants.categoryById(e.key);
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            children: [
+                              Container(width: 10, height: 10,
+                                  decoration: BoxDecoration(color: cat.color, shape: BoxShape.circle)),
+                              const SizedBox(width: 6),
+                              Text('${cat.emoji} ${cat.label}',
+                                  style: const TextStyle(fontSize: 12)),
+                              const Spacer(),
+                              Text('¥${e.value.toStringAsFixed(0)}',
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── 近6月收支柱状图 ────────────────────────────────────────────────
+class _BarChartCard extends StatelessWidget {
+  final List<Map<String, double>> last6;
+  const _BarChartCard({required this.last6});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final maxVal = last6.fold(0.0, (m, e) => [m, e['expense']!, e['income']!].reduce((a, b) => a > b ? a : b));
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('近6月收支', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _Legend(color: AppTheme.expenseRed, label: '支出'),
+                const SizedBox(width: 12),
+                _Legend(color: AppTheme.incomeGreen, label: '收入'),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 110,
+              child: BarChart(BarChartData(
+                maxY: maxVal > 0 ? maxVal * 1.2 : 100,
+                gridData: FlGridData(show: false),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (v, _) {
+                        final m = DateTime(now.year, now.month - 5 + v.toInt());
+                        return Text('${m.month}月', style: const TextStyle(fontSize: 10));
+                      },
+                    ),
+                  ),
+                ),
+                barGroups: List.generate(6, (i) => BarChartGroupData(
+                  x: i,
+                  barRods: [
+                    BarChartRodData(toY: last6[i]['expense']!, color: AppTheme.expenseRed, width: 8, borderRadius: BorderRadius.circular(4)),
+                    BarChartRodData(toY: last6[i]['income']!, color: AppTheme.incomeGreen, width: 8, borderRadius: BorderRadius.circular(4)),
+                  ],
+                  barsSpace: 4,
+                )),
+              )),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Legend extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _Legend({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          Container(width: 12, height: 12, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
+          const SizedBox(width: 4),
+          Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+        ],
+      );
+}
+
+// ── Top5 支出类别 ─────────────────────────────────────────────────
+class _TopCategories extends StatelessWidget {
+  final List<MapEntry<String, double>> entries;
+  const _TopCategories({required this.entries});
+
+  @override
+  Widget build(BuildContext context) {
+    if (entries.isEmpty) return const SizedBox.shrink();
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('支出排名 Top5', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            ...entries.asMap().entries.map((e) {
+              final rank = e.key + 1;
+              final cat  = AppConstants.categoryById(e.value.key);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 24, height: 24,
+                      decoration: BoxDecoration(
+                        color: rank <= 3 ? AppTheme.coinGold : Colors.grey.shade200,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(child: Text('$rank',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold,
+                              color: rank <= 3 ? Colors.white : Colors.grey))),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(cat.emoji, style: const TextStyle(fontSize: 20)),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(cat.label, style: const TextStyle(fontSize: 14))),
+                    Text('¥${e.value.value.toStringAsFixed(2)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.expenseRed)),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
