@@ -34,7 +34,7 @@ class AddBillView extends GetView<AddBillController> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 收支切换
-                Obx(() => Container(
+                Container(
                   padding: const EdgeInsets.all(3),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
@@ -44,7 +44,7 @@ class AddBillView extends GetView<AddBillController> {
                     _segmentTab('支出', 'expense', controller.selectedType),
                     _segmentTab('收入', 'income', controller.selectedType),
                   ]),
-                )),
+                ),
                 const SizedBox(height: 20),
                 // 金额输入
                 TextField(
