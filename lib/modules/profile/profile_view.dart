@@ -15,13 +15,20 @@ class ProfileView extends GetView<ProfileController> {
   Widget build(BuildContext context) {
     final ad = AdService.to;
     return Scaffold(
-      appBar: AppBar(title: const Text('我的')),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('我的',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+      ),
       body: ListView(
         children: [
           // 用户信息卡
           Container(
-            color: AppTheme.primary,
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+            decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+            padding: EdgeInsets.fromLTRB(
+                20, MediaQuery.of(context).padding.top + 56, 20, 28),
             child: Row(
               children: [
                 CircleAvatar(
@@ -88,6 +95,12 @@ class ProfileView extends GetView<ProfileController> {
               onTap: () => Get.toNamed(Routes.split)),
           _MenuItem(icon: Icons.calendar_today, label: '每日签到', subtitle: '签到赚金币，7天连签额外奖励',
               onTap: () => Get.toNamed(Routes.dailyCheckin)),
+          _MenuItem(
+            icon: Icons.category_outlined,
+            label: '我的分类',
+            subtitle: '新增自定义收支分类',
+            onTap: () => Get.toNamed(Routes.categoryMgmt),
+          ),
           const SizedBox(height: 8),
           _SectionHeader(title: '数据'),
           _MenuItem(
