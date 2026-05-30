@@ -172,23 +172,6 @@ class _UserCard extends StatelessWidget {
   }
 }
 
-class _StatCol extends StatelessWidget {
-  final String value;
-  final String label;
-  const _StatCol({required this.value, required this.label});
-
-  @override
-  Widget build(BuildContext context) => Expanded(
-        child: Column(
-          children: [
-            Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primary)),
-            const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          ],
-        ),
-      );
-}
-
 class _RecordItem extends StatelessWidget {
   final AdRecord record;
   final VoidCallback onTap;
