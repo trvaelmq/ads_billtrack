@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_theme.dart';
 import '../../router/app_pages.dart';
+import '../../widgets/animated_counter.dart';
 import 'report_controller.dart';
 
 class ReportView extends GetView<ReportController> {
@@ -12,17 +13,22 @@ class ReportView extends GetView<ReportController> {
   Widget build(BuildContext context) {
     final bill = controller.bill;
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Obx(() => Text(bill.currentMonthLabel)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Obx(() => Text(bill.currentMonthLabel,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
         actions: [
           IconButton(
             icon: const Icon(Icons.chevron_left, color: Colors.white),
             onPressed: () => bill.changeMonth(-1),
           ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right, color: Colors.white),
-            onPressed: () => bill.isCurrentMonth ? null : bill.changeMonth(1),
-          ),
+          Obx(() => IconButton(
+            icon: Icon(Icons.chevron_right,
+                color: bill.isCurrentMonth ? Colors.white30 : Colors.white),
+            onPressed: bill.isCurrentMonth ? null : () => bill.changeMonth(1),
+          )),
         ],
       ),
       body: Obx(() {
@@ -35,64 +41,78 @@ class ReportView extends GetView<ReportController> {
         final budgets     = controller.budgets;
         final hasBudget   = budgets.isNotEmpty;
 
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-          children: [
-            // ── 月报告卡片 ────────────────────────────────────────────
-            _SectionTitle(title: '月度报告'),
-            const SizedBox(height: 8),
-            _MonthReportCard(
-              expense: expense, income: income, net: net,
-              lastExpense: lastExp, lastIncome: lastInc,
-            ),
-            const SizedBox(height: 20),
-
-            // ── 预算进度 ──────────────────────────────────────────────
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return Column(children: [
+          Container(
+            height: MediaQuery.of(context).padding.top + 56,
+            decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
-                const _SectionTitle(title: '预算进度'),
-                TextButton.icon(
-                  onPressed: controller.goToBudget,
-                  icon: const Icon(Icons.edit_outlined, size: 14),
-                  label: const Text('管理预算', style: TextStyle(fontSize: 13)),
-                  style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
+                // ── 月报告卡片 ────────────────────────────────────────────
+                _SectionTitle(title: '月度报告'),
+                const SizedBox(height: 8),
+                _MonthReportCard(
+                  expense: expense, income: income, net: net,
+                  lastExpense: lastExp, lastIncome: lastInc,
                 ),
+                const SizedBox(height: 20),
+
+                // ── 预算进度 ──────────────────────────────────────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const _SectionTitle(title: '预算进度'),
+                    TextButton.icon(
+                      onPressed: controller.goToBudget,
+                      icon: const Icon(Icons.edit_outlined, size: 14),
+                      label: const Text('管理预算', style: TextStyle(fontSize: 13)),
+                      style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (!hasBudget)
+                  _EmptyBudgetHint(onTap: controller.goToBudget)
+                else
+                  ...AppConstants.expenseCategories
+                      .where((cat) => (budgets[cat.id] ?? 0) > 0)
+                      .toList()
+                      .asMap()
+                      .entries
+                      .map((entry) {
+                    final cat = entry.value;
+                    final rowIndex = entry.key;
+                    final spent  = expenses[cat.id] ?? 0;
+                    final budget = budgets[cat.id]!;
+                    return _BudgetRow(
+                      emoji:    cat.emoji,
+                      label:    cat.label,
+                      color:    cat.color,
+                      spent:    spent,
+                      budget:   budget,
+                      rowIndex: rowIndex,
+                      onTap: () async {
+                        await Get.toNamed(Routes.budgetDetail, arguments: cat.id);
+                        controller.refreshBudgets();
+                      },
+                    );
+                  }),
+
+                // 未设预算分类简览
+                if (hasBudget) ...[
+                  const SizedBox(height: 16),
+                  _UnsetCategories(
+                    expenses: expenses,
+                    budgets: budgets,
+                    onTap: controller.goToBudget,
+                  ),
+                ],
               ],
             ),
-            const SizedBox(height: 8),
-            if (!hasBudget)
-              _EmptyBudgetHint(onTap: controller.goToBudget)
-            else
-              ...AppConstants.expenseCategories
-                  .where((cat) => (budgets[cat.id] ?? 0) > 0)
-                  .map((cat) {
-                final spent  = expenses[cat.id] ?? 0;
-                final budget = budgets[cat.id]!;
-                return _BudgetRow(
-                  emoji:  cat.emoji,
-                  label:  cat.label,
-                  color:  cat.color,
-                  spent:  spent,
-                  budget: budget,
-                  onTap: () async {
-                    await Get.toNamed(Routes.budgetDetail, arguments: cat.id);
-                    controller.refreshBudgets();
-                  },
-                );
-              }),
-
-            // 未设预算分类简览
-            if (hasBudget) ...[
-              const SizedBox(height: 16),
-              _UnsetCategories(
-                expenses: expenses,
-                budgets: budgets,
-                onTap: controller.goToBudget,
-              ),
-            ],
-          ],
-        );
+          ),
+        ]);
       }),
     );
   }
@@ -205,8 +225,11 @@ class _ReportStat extends StatelessWidget {
       children: [
         Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
         const SizedBox(height: 6),
-        Text('¥${value.toStringAsFixed(0)}',
-            style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.bold)),
+        AnimatedCounter(
+          value: value,
+          style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.bold),
+          decimalPlaces: 0,
+        ),
         if (hasRef) ...[
           const SizedBox(height: 4),
           Row(
@@ -231,10 +254,12 @@ class _BudgetRow extends StatelessWidget {
   final String emoji, label;
   final Color color;
   final double spent, budget;
+  final int rowIndex;
   final VoidCallback onTap;
   const _BudgetRow({
     required this.emoji, required this.label, required this.color,
-    required this.spent, required this.budget, required this.onTap,
+    required this.spent, required this.budget, required this.rowIndex,
+    required this.onTap,
   });
 
   @override
@@ -295,15 +320,24 @@ class _BudgetRow extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: ratio,
-                    minHeight: 7,
-                    backgroundColor: Colors.grey.shade100,
-                    valueColor: AlwaysStoppedAnimation<Color>(barColor),
-                  ),
-                ),
+                child: LayoutBuilder(builder: (ctx, constraints) {
+                  return Stack(children: [
+                    Container(
+                      height: 6,
+                      decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(3)),
+                    ),
+                    AnimatedContainer(
+                      duration: Duration(milliseconds: 400 + rowIndex * 80),
+                      curve: Curves.easeOutCubic,
+                      height: 6,
+                      width: constraints.maxWidth * ratio,
+                      decoration: BoxDecoration(
+                          color: barColor, borderRadius: BorderRadius.circular(3)),
+                    ),
+                  ]);
+                }),
               ),
               const SizedBox(width: 10),
               Text('$pct%',
