@@ -6,6 +6,7 @@ import '../../core/services/bill_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/bill_record.dart';
 import '../../router/app_pages.dart';
+import '../../widgets/staggered_list_item.dart';
 
 class BillView extends StatelessWidget {
   const BillView({super.key});
@@ -14,67 +15,86 @@ class BillView extends StatelessWidget {
   Widget build(BuildContext context) {
     final bill = BillService.to;
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Obx(() => Text(bill.currentMonthLabel)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Obx(() => Text(bill.currentMonthLabel,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
         actions: [
-          IconButton(icon: const Icon(Icons.chevron_left, color: Colors.white),
+          IconButton(
+              icon: const Icon(Icons.chevron_left, color: Colors.white),
               onPressed: () => bill.changeMonth(-1)),
-          IconButton(icon: const Icon(Icons.chevron_right, color: Colors.white),
-              onPressed: () => bill.isCurrentMonth ? null : bill.changeMonth(1)),
+          Obx(() => IconButton(
+              icon: Icon(Icons.chevron_right,
+                  color: bill.isCurrentMonth ? Colors.white30 : Colors.white),
+              onPressed: bill.isCurrentMonth ? null : () => bill.changeMonth(1))),
         ],
       ),
       body: Obx(() {
         final grouped = bill.billsByDate;
         if (grouped.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('💸', style: TextStyle(fontSize: 60)),
-                const SizedBox(height: 16),
-                const Text('还没有账单', style: TextStyle(fontSize: 18, color: AppTheme.textSecondary)),
-                const SizedBox(height: 8),
-                const Text('点击右下角 + 记录第一笔账单',
-                    style: TextStyle(fontSize: 13, color: Colors.grey)),
-              ],
+          return Column(children: [
+            Container(
+              height: MediaQuery.of(context).padding.top + 56,
+              decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
             ),
-          );
+            Expanded(
+              child: Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  const Text('💸', style: TextStyle(fontSize: 60)),
+                  const SizedBox(height: 16),
+                  const Text('还没有账单', style: TextStyle(fontSize: 18, color: AppTheme.textSecondary)),
+                  const SizedBox(height: 8),
+                  const Text('点击右下角 + 记录第一笔账单', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                ]),
+              ),
+            ),
+          ]);
         }
         final keys = grouped.keys.toList();
-        return ListView.builder(
-          padding: const EdgeInsets.only(bottom: 80),
-          itemCount: keys.length,
-          itemBuilder: (_, i) {
-            final dateKey = keys[i];
-            final items   = grouped[dateKey]!;
-            final dayExpense = items.where((b) => b.isExpense).fold(0.0, (s, b) => s + b.amount);
-            final dayIncome  = items.where((b) => !b.isExpense).fold(0.0, (s, b) => s + b.amount);
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 日期分组头
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  color: AppTheme.background,
-                  child: Row(
-                    children: [
-                      Text(dateKey, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textSecondary)),
-                      const Spacer(),
-                      if (dayExpense > 0)
-                        Text('支出 ¥${dayExpense.toStringAsFixed(2)}',
-                            style: const TextStyle(fontSize: 12, color: AppTheme.expenseRed)),
-                      if (dayExpense > 0 && dayIncome > 0) const Text('  ', style: TextStyle(fontSize: 12)),
-                      if (dayIncome > 0)
-                        Text('收入 ¥${dayIncome.toStringAsFixed(2)}',
-                            style: const TextStyle(fontSize: 12, color: AppTheme.incomeGreen)),
-                    ],
-                  ),
-                ),
-                ...items.map((b) => _BillItem(record: b, onDelete: () => _confirmDelete(context, b, bill))),
-              ],
-            );
-          },
-        );
+        return Column(children: [
+          Container(
+            height: MediaQuery.of(context).padding.top + 56,
+            decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.only(bottom: 80),
+              itemCount: keys.length,
+              itemBuilder: (_, i) {
+                final dateKey = keys[i];
+                final items   = grouped[dateKey]!;
+                final dayExpense = items.where((b) => b.isExpense).fold(0.0, (s, b) => s + b.amount);
+                final dayIncome  = items.where((b) => !b.isExpense).fold(0.0, (s, b) => s + b.amount);
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      color: AppTheme.background,
+                      child: Row(children: [
+                        Text(dateKey, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textSecondary)),
+                        const Spacer(),
+                        if (dayExpense > 0)
+                          Text('支出 ¥${dayExpense.toStringAsFixed(2)}',
+                              style: const TextStyle(fontSize: 12, color: AppTheme.expenseRed)),
+                        if (dayExpense > 0 && dayIncome > 0) const Text('  ', style: TextStyle(fontSize: 12)),
+                        if (dayIncome > 0)
+                          Text('收入 ¥${dayIncome.toStringAsFixed(2)}',
+                              style: const TextStyle(fontSize: 12, color: AppTheme.incomeGreen)),
+                      ]),
+                    ),
+                    ...items.asMap().entries.map((entry) => StaggeredListItem(
+                      index: entry.key,
+                      child: _BillItem(record: entry.value, onDelete: () => _confirmDelete(context, entry.value, bill)),
+                    )),
+                  ],
+                );
+              },
+            ),
+          ),
+        ]);
       }),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Get.toNamed(Routes.addBill),
@@ -113,11 +133,7 @@ class _BillItem extends StatelessWidget {
       onLongPress: onDelete,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4, offset: const Offset(0, 1))],
-        ),
+        decoration: AppTheme.cardDecoration,
         child: ListTile(
           leading: Container(
             width: 44, height: 44,

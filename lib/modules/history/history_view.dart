@@ -5,6 +5,7 @@ import '../../core/services/storage_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/ad_record.dart';
 import 'history_controller.dart';
+import '../../widgets/staggered_list_item.dart';
 
 class HistoryView extends GetView<HistoryController> {
   const HistoryView({super.key});
@@ -20,50 +21,42 @@ class HistoryView extends GetView<HistoryController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(title: const Text('签到记录')),
-        body: Obx(() {
-          final records = controller.records;
-          return Column(
-            children: [
-              // 用户信息卡
-              _UserCard(recordCount: records.length),
-              // 统计条
-              // Container(
-              //   color: Colors.white,
-              //   padding: const EdgeInsets.symmetric(vertical: 16),
-              //   child: Row(
-              //     children: [
-              //       _StatCol(value: '${records.length}', label: '总观看'),
-              //       _StatCol(value: '${controller.totalCoins}🪙', label: '累计金币'),
-              //       _StatCol(value: '${controller.todayCount}', label: '今日观看'),
-              //     ],
-              //   ),
-              // ),
-              const Divider(height: 1),
-              // 记录列表
-              Expanded(
-                child: records.isEmpty
-                    ? const Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('📺', style: TextStyle(fontSize: 60)),
-                            SizedBox(height: 12),
-                            Text('还没有广告记录', style: TextStyle(color: AppTheme.textSecondary)),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: records.length,
-                        itemBuilder: (_, i) => _RecordItem(
-                          record: records[i],
-                          onTap: () => _showDetail(context, records[i]),
-                        ),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('签到记录',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+      ),
+      body: Obx(() {
+        final records = controller.records;
+        return Column(children: [
+          Container(
+            height: MediaQuery.of(context).padding.top + 56,
+            decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+          ),
+          _UserCard(recordCount: records.length),
+          const Divider(height: 1),
+          Expanded(
+            child: records.isEmpty
+                ? const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Text('📺', style: TextStyle(fontSize: 60)),
+                    SizedBox(height: 12),
+                    Text('还没有广告记录', style: TextStyle(color: AppTheme.textSecondary)),
+                  ]))
+                : ListView.builder(
+                    itemCount: records.length,
+                    itemBuilder: (_, i) => StaggeredListItem(
+                      index: i,
+                      child: _RecordItem(
+                        record: records[i],
+                        onTap: () => _showDetail(context, records[i]),
                       ),
-              ),
-            ],
-          );
-        }),
+                    ),
+                  ),
+          ),
+        ]);
+      }),
     );
   }
 
