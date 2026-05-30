@@ -18,6 +18,11 @@ import '../modules/daily_checkin/daily_checkin_view.dart';
 import '../modules/daily_checkin/daily_checkin_binding.dart';
 import '../modules/budget_detail/budget_detail_view.dart';
 import '../modules/budget_detail/budget_detail_controller.dart';
+import '../modules/calendar/calendar_view.dart';
+import '../modules/calendar/calendar_binding.dart';
+import '../modules/calendar/day_detail_view.dart';
+import '../modules/category_mgmt/category_mgmt_view.dart';
+import '../modules/category_mgmt/category_mgmt_binding.dart';
 
 abstract class Routes {
   static const splash        = '/';
@@ -30,6 +35,9 @@ abstract class Routes {
   static const history       = '/history';
   static const dailyCheckin  = '/daily-checkin';
   static const budgetDetail  = '/budget-detail';
+  static const calendar      = '/calendar';
+  static const dayDetail     = '/calendar/day';
+  static const categoryMgmt  = '/category-mgmt';
 }
 
 class AppPages {
@@ -50,6 +58,26 @@ class AppPages {
         final categoryId = Get.arguments as String;
         Get.lazyPut(() => BudgetDetailController(categoryId: categoryId));
       }),
+    ),
+    GetPage(
+      name: Routes.calendar,
+      page: () => const CalendarView(),
+      binding: CalendarBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+    GetPage(
+      name: Routes.dayDetail,
+      page: () => DayDetailView(date: Get.arguments as DateTime),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+    GetPage(
+      name: Routes.categoryMgmt,
+      page: () => const CategoryMgmtView(),
+      binding: CategoryMgmtBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 300),
     ),
   ];
 }
