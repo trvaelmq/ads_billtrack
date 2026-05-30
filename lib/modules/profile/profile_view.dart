@@ -23,6 +23,7 @@ class ProfileView extends GetView<ProfileController> {
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
       ),
       body: ListView(
+        padding: EdgeInsets.zero,
         children: [
           // 用户信息卡
           Container(

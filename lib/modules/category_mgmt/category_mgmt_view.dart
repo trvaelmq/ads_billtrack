@@ -163,11 +163,11 @@ class CategoryMgmtView extends GetView<CategoryMgmtController> {
               const SizedBox(height: 16),
               Text('新增分类', style: AppTheme.headline),
               const SizedBox(height: 16),
-              Obx(() => Row(children: [
+              Row(children: [
                     _typeChip('支出', true, isExpense),
                     const SizedBox(width: 8),
                     _typeChip('收入', false, isExpense),
-                  ])),
+                  ]),
               const SizedBox(height: 12),
               TextField(
                 controller: nameCtrl,

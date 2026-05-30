@@ -21,6 +21,15 @@ class HomeView extends StatelessWidget {
     final statusBarH = MediaQuery.of(context).padding.top;
 
     return Stack(children: [
+      Positioned(
+        top: 0,
+        left: 0,
+        right: 0,
+        child: Container(
+          height: statusBarH + 56,
+          decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+        ),
+      ),
       Scaffold(
         extendBodyBehindAppBar: true,
         appBar: AppBar(
@@ -119,15 +128,6 @@ class HomeView extends StatelessWidget {
             ],
           );
         }),
-      ),
-      Positioned(
-        top: 0,
-        left: 0,
-        right: 0,
-        child: Container(
-          height: statusBarH + 56,
-          decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
-        ),
       ),
       Obx(() => ad.showCoinAnimation.value
           ? CoinFloatAnimation(coins: ad.lastEarnedCoins.value)
