@@ -81,7 +81,6 @@ class _RecurringEditViewState extends State<RecurringEditView> {
   @override
   Widget build(BuildContext context) {
     final cats = _isExpense ? AppConstants.expenseCategories : AppConstants.incomeCategories;
-    if (!cats.any((c) => c.id == _category)) _category = cats.first.id;
 
     return Scaffold(
       appBar: AppBar(

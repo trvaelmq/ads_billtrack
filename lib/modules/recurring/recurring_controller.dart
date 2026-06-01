@@ -5,7 +5,7 @@ import '../../data/models/recurring_rule.dart';
 class RecurringController extends GetxController {
   final service = RecurringService.to;
 
-  List<RecurringRule> get rules => service.rules;
+  RxList<RecurringRule> get rules => service.rules;
 
   void deleteRule(String id) => service.deleteRule(id);
 }

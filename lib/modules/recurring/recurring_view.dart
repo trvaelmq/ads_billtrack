@@ -10,7 +10,6 @@ class RecurringView extends GetView<RecurringController> {
 
   @override
   Widget build(BuildContext context) {
-    Get.put(RecurringController());
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppTheme.primaryStart,
