@@ -1,49 +1,55 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'bill_record.dart';
+part of 'recurring_rule.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
 
-class BillRecordAdapter extends TypeAdapter<BillRecord> {
+class RecurringRuleAdapter extends TypeAdapter<RecurringRule> {
   @override
-  final int typeId = 0;
+  final int typeId = 2;
 
   @override
-  BillRecord read(BinaryReader reader) {
+  RecurringRule read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return BillRecord()
+    return RecurringRule()
       ..id = fields[0] as String
-      ..amount = fields[1] as double
-      ..type = fields[2] as String
+      ..title = fields[1] as String
+      ..amount = fields[2] as double
       ..category = fields[3] as String
-      ..date = fields[4] as DateTime
-      ..note = fields[5] as String
-      ..tags = (fields[6] as List?)?.cast<String>();
+      ..isExpense = fields[4] as bool
+      ..frequency = fields[5] as String
+      ..nextDueDate = fields[6] as DateTime
+      ..isActive = fields[7] as bool
+      ..note = fields[8] as String;
   }
 
   @override
-  void write(BinaryWriter writer, BillRecord obj) {
+  void write(BinaryWriter writer, RecurringRule obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
-      ..write(obj.amount)
+      ..write(obj.title)
       ..writeByte(2)
-      ..write(obj.type)
+      ..write(obj.amount)
       ..writeByte(3)
       ..write(obj.category)
       ..writeByte(4)
-      ..write(obj.date)
+      ..write(obj.isExpense)
       ..writeByte(5)
-      ..write(obj.note)
+      ..write(obj.frequency)
       ..writeByte(6)
-      ..write(obj.tags);
+      ..write(obj.nextDueDate)
+      ..writeByte(7)
+      ..write(obj.isActive)
+      ..writeByte(8)
+      ..write(obj.note);
   }
 
   @override
@@ -52,7 +58,7 @@ class BillRecordAdapter extends TypeAdapter<BillRecord> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is BillRecordAdapter &&
+      other is RecurringRuleAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

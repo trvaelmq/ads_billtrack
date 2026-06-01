@@ -10,6 +10,7 @@ class BillRecord extends HiveObject {
   @HiveField(3) late String   category; // 分类 id
   @HiveField(4) late DateTime date;
   @HiveField(5) late String   note;
+  @HiveField(6) List<String>? tags;   // 新增，可空，旧数据兼容
 
   bool get isExpense => type == 'expense';
 }
