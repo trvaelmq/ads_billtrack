@@ -24,6 +24,8 @@ import '../modules/calendar/day_detail_view.dart';
 import '../modules/category_mgmt/category_mgmt_view.dart';
 import '../modules/category_mgmt/category_mgmt_binding.dart';
 import '../modules/health_score/health_score_view.dart';
+import '../modules/recurring/recurring_view.dart';
+import '../modules/recurring/recurring_edit_view.dart';
 
 abstract class Routes {
   static const splash        = '/';
@@ -89,5 +91,7 @@ class AppPages {
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 300),
     ),
+    GetPage(name: Routes.recurring,     page: () => const RecurringView(),     transition: Transition.cupertino),
+    GetPage(name: Routes.recurringEdit, page: () => const RecurringEditView(), transition: Transition.cupertino),
   ];
 }
