@@ -27,6 +27,9 @@ import '../modules/health_score/health_score_view.dart';
 import '../modules/recurring/recurring_view.dart';
 import '../modules/recurring/recurring_edit_view.dart';
 import '../modules/recurring/recurring_binding.dart';
+import '../modules/report/heatmap_view.dart';
+import '../modules/report/category_drill_view.dart';
+import '../modules/report/compare_view.dart';
 
 abstract class Routes {
   static const splash        = '/';
@@ -105,6 +108,24 @@ class AppPages {
     GetPage(
       name: Routes.recurringEdit,
       page: () => const RecurringEditView(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+    GetPage(
+      name: Routes.heatmap,
+      page: () => const HeatmapView(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+    GetPage(
+      name: Routes.categoryDrill,
+      page: () => const CategoryDrillView(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+    GetPage(
+      name: Routes.compare,
+      page: () => const CompareView(),
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 300),
     ),

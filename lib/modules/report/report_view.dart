@@ -5,118 +5,160 @@ import '../../core/theme/app_theme.dart';
 import '../../router/app_pages.dart';
 import '../../widgets/animated_counter.dart';
 import 'report_controller.dart';
+import 'heatmap_view.dart';
+import 'compare_view.dart';
 
 class ReportView extends GetView<ReportController> {
   const ReportView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final bill = controller.bill;
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Obx(() => Text(bill.currentMonthLabel,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left, color: Colors.white),
-            onPressed: () => bill.changeMonth(-1),
+    return DefaultTabController(
+      length: 4,
+      child: Scaffold(
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: Obx(() => Text(controller.bill.currentMonthLabel,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.chevron_left, color: Colors.white),
+              onPressed: () => controller.bill.changeMonth(-1),
+            ),
+            Obx(() => IconButton(
+              icon: Icon(Icons.chevron_right,
+                  color: controller.bill.isCurrentMonth ? Colors.white30 : Colors.white),
+              onPressed: controller.bill.isCurrentMonth ? null : () => controller.bill.changeMonth(1),
+            )),
+          ],
+          bottom: const TabBar(
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white54,
+            indicatorColor: Colors.white,
+            indicatorWeight: 2,
+            labelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            tabs: [
+              Tab(text: '月报'),
+              Tab(text: '热力图'),
+              Tab(text: '分类'),
+              Tab(text: '同比'),
+            ],
           ),
-          Obx(() => IconButton(
-            icon: Icon(Icons.chevron_right,
-                color: bill.isCurrentMonth ? Colors.white30 : Colors.white),
-            onPressed: bill.isCurrentMonth ? null : () => bill.changeMonth(1),
-          )),
-        ],
-      ),
-      body: Obx(() {
-        final expense     = bill.monthlyExpense.value;
-        final income      = bill.monthlyIncome.value;
-        final net         = income - expense;
-        final lastExp     = controller.lastMonthExpense;
-        final lastInc     = controller.lastMonthIncome;
-        final expenses    = bill.expenseByCategory;
-        final budgets     = controller.budgets;
-        final hasBudget   = budgets.isNotEmpty;
-
-        return Column(children: [
+        ),
+        body: Column(children: [
           Container(
-            height: MediaQuery.of(context).padding.top + 56,
+            height: MediaQuery.of(context).padding.top + 56 + 46,
             decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
           ),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-              children: [
-                // ── 月报告卡片 ────────────────────────────────────────────
-                _SectionTitle(title: '月度报告'),
-                const SizedBox(height: 8),
-                _MonthReportCard(
-                  expense: expense, income: income, net: net,
-                  lastExpense: lastExp, lastIncome: lastInc,
-                ),
-                const SizedBox(height: 20),
-
-                // ── 预算进度 ──────────────────────────────────────────────
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const _SectionTitle(title: '预算进度'),
-                    TextButton.icon(
-                      onPressed: controller.goToBudget,
-                      icon: const Icon(Icons.edit_outlined, size: 14),
-                      label: const Text('管理预算', style: TextStyle(fontSize: 13)),
-                      style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                if (!hasBudget)
-                  _EmptyBudgetHint(onTap: controller.goToBudget)
-                else
-                  ...AppConstants.expenseCategories
-                      .where((cat) => (budgets[cat.id] ?? 0) > 0)
-                      .toList()
-                      .asMap()
-                      .entries
-                      .map((entry) {
-                    final cat = entry.value;
-                    final rowIndex = entry.key;
-                    final spent  = expenses[cat.id] ?? 0;
-                    final budget = budgets[cat.id]!;
-                    return _BudgetRow(
-                      emoji:    cat.emoji,
-                      label:    cat.label,
-                      color:    cat.color,
-                      spent:    spent,
-                      budget:   budget,
-                      rowIndex: rowIndex,
-                      onTap: () async {
-                        await Get.toNamed(Routes.budgetDetail, arguments: cat.id);
-                        controller.refreshBudgets();
-                      },
-                    );
-                  }),
-
-                // 未设预算分类简览
-                if (hasBudget) ...[
-                  const SizedBox(height: 16),
-                  _UnsetCategories(
-                    expenses: expenses,
-                    budgets: budgets,
-                    onTap: controller.goToBudget,
-                  ),
-                ],
-              ],
-            ),
+            child: TabBarView(children: [
+              _MonthlyReportTab(controller: controller),
+              const HeatmapView(),
+              _CategoryTab(controller: controller),
+              const CompareView(),
+            ]),
           ),
-        ]);
-      }),
+        ]),
+      ),
     );
   }
 
+}
+
+class _MonthlyReportTab extends StatelessWidget {
+  final ReportController controller;
+  const _MonthlyReportTab({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final bill      = controller.bill;
+      final expense   = bill.monthlyExpense.value;
+      final income    = bill.monthlyIncome.value;
+      final net       = income - expense;
+      final lastExp   = controller.lastMonthExpense;
+      final lastInc   = controller.lastMonthIncome;
+      final expenses  = bill.expenseByCategory;
+      final budgets   = controller.budgets;
+      final hasBudget = budgets.isNotEmpty;
+
+      return ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 32), children: [
+        _SectionTitle(title: '月度报告'),
+        const SizedBox(height: 8),
+        _MonthReportCard(expense: expense, income: income, net: net, lastExpense: lastExp, lastIncome: lastInc),
+        const SizedBox(height: 20),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          const _SectionTitle(title: '预算进度'),
+          TextButton.icon(
+            onPressed: controller.goToBudget,
+            icon: const Icon(Icons.edit_outlined, size: 14),
+            label: const Text('管理预算', style: TextStyle(fontSize: 13)),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
+          ),
+        ]),
+        const SizedBox(height: 8),
+        if (!hasBudget)
+          _EmptyBudgetHint(onTap: controller.goToBudget)
+        else
+          ...AppConstants.expenseCategories
+              .where((cat) => (budgets[cat.id] ?? 0) > 0)
+              .toList().asMap().entries.map((entry) {
+            final cat = entry.value;
+            final spent  = expenses[cat.id] ?? 0;
+            final budget = budgets[cat.id]!;
+            return _BudgetRow(
+              emoji: cat.emoji, label: cat.label, color: cat.color,
+              spent: spent, budget: budget, rowIndex: entry.key,
+              onTap: () async {
+                await Get.toNamed(Routes.budgetDetail, arguments: cat.id);
+                controller.refreshBudgets();
+              },
+            );
+          }),
+        if (hasBudget) ...[
+          const SizedBox(height: 16),
+          _UnsetCategories(expenses: expenses, budgets: budgets, onTap: controller.goToBudget),
+        ],
+      ]);
+    });
+  }
+}
+
+class _CategoryTab extends StatelessWidget {
+  final ReportController controller;
+  const _CategoryTab({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final expenses = controller.bill.expenseByCategory;
+      final cats = AppConstants.expenseCategories.where((c) => (expenses[c.id] ?? 0) > 0).toList();
+      if (cats.isEmpty) {
+        return Center(child: Text('本月暂无支出数据', style: AppTheme.caption));
+      }
+      return ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 32), children: [
+        ...cats.map((c) => GestureDetector(
+          onTap: () => Get.toNamed(Routes.categoryDrill, arguments: c.id),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: AppTheme.cardDecoration,
+            child: Row(children: [
+              Text(c.emoji, style: const TextStyle(fontSize: 22)),
+              const SizedBox(width: 12),
+              Expanded(child: Text(c.label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500))),
+              Text('¥${(expenses[c.id] ?? 0).toStringAsFixed(0)}',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.expenseRed)),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right, size: 16, color: AppTheme.textSecondary),
+            ]),
+          ),
+        )),
+      ]);
+    });
+  }
 }
 
 // ── 区块标题 ────────────────────────────────────────────────────────
