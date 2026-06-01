@@ -76,13 +76,18 @@ class HomeView extends StatelessWidget {
             final m = DateTime(now.year, now.month - i);
             last3Bills.addAll(StorageService.billsForMonth(m.year, m.month));
           }
-          final insights = BillService.generateInsights(
+          final oldInsights = BillService.generateInsights(
             currentBills: bill.bills,
             monthlyExpense: bill.monthlyExpense.value,
             monthlyIncome: bill.monthlyIncome.value,
             last3MonthsBills: last3Bills,
             budgets: StorageService.budgets,
           );
+          final newInsights = BillService.generateUpgradedInsights(
+            currentBills: bill.bills,
+            monthlyExpense: bill.monthlyExpense.value,
+          );
+          final insights = [...newInsights, ...oldInsights].take(2).toList();
 
           return Column(children: [
             Container(
@@ -102,6 +107,16 @@ class HomeView extends StatelessWidget {
                       child: Column(
                         children: dueRules.map((rule) => _DueBanner(rule: rule)).toList(),
                       ),
+                    );
+                  }),
+                  // 月度总结 Banner（每月1日首次打开时显示）
+                  Builder(builder: (_) {
+                    if (StorageService.monthlySummaryShown) return const SizedBox.shrink();
+                    final summary = BillService.buildMonthlySummary();
+                    if (summary == null) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                      child: _MonthlySummaryBanner(summary: summary),
                     );
                   }),
                   if (overBudget.isNotEmpty)
@@ -610,6 +625,80 @@ class _DueBanner extends StatelessWidget {
       ]),
     );
   }
+}
+
+// ── Monthly Summary Banner ────────────────────────────────────────────────────
+
+class _MonthlySummaryBanner extends StatefulWidget {
+  final Map<String, dynamic> summary;
+  const _MonthlySummaryBanner({required this.summary});
+  @override
+  State<_MonthlySummaryBanner> createState() => _MonthlySummaryBannerState();
+}
+
+class _MonthlySummaryBannerState extends State<_MonthlySummaryBanner> {
+  bool _visible = true;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_visible) return const SizedBox.shrink();
+    final s = widget.summary;
+    final scoreDiff = s['scoreDiff'] as int?;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF6C5CE7), Color(0xFF00B4D8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Text('📊 ${s['month']} 总结', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+          const Spacer(),
+          GestureDetector(
+            onTap: () async {
+              await StorageService.setMonthlySummaryShown();
+              setState(() => _visible = false);
+            },
+            child: const Icon(Icons.close, color: Colors.white70, size: 18),
+          ),
+        ]),
+        const SizedBox(height: 10),
+        Row(children: [
+          _SummaryChip(label: '支出', value: '¥${(s['expense'] as double).toStringAsFixed(0)}'),
+          const SizedBox(width: 12),
+          _SummaryChip(label: '收入', value: '¥${(s['income'] as double).toStringAsFixed(0)}'),
+          if (scoreDiff != null) ...[
+            const SizedBox(width: 12),
+            _SummaryChip(
+              label: '健康分',
+              value: '${scoreDiff >= 0 ? '+' : ''}$scoreDiff',
+              valueColor: scoreDiff >= 0 ? const Color(0xFFB9F6CA) : const Color(0xFFFFCDD2),
+            ),
+          ],
+        ]),
+        const SizedBox(height: 8),
+        Text(s['summary'] as String,
+            style: const TextStyle(color: Colors.white, fontSize: 12)),
+      ]),
+    );
+  }
+}
+
+class _SummaryChip extends StatelessWidget {
+  final String label, value;
+  final Color? valueColor;
+  const _SummaryChip({required this.label, required this.value, this.valueColor});
+  @override
+  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text(label, style: const TextStyle(color: Colors.white60, fontSize: 11)),
+    Text(value, style: TextStyle(color: valueColor ?? Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+  ]);
 }
 
 // ── Health Score Preview Card ─────────────────────────────────────────────────

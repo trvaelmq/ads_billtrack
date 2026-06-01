@@ -1,5 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../data/models/bill_record.dart';
 import '../constants/app_constants.dart';
 import 'notification_service.dart';
@@ -185,6 +189,36 @@ class BillService extends GetxService {
     return '💡';
   }
 
+  // 导出账单为 CSV 并分享
+  Future<void> exportBillsAsCsv({bool allTime = false}) async {
+    final records = allTime
+        ? StorageService.allBills
+        : StorageService.billsForMonth(currentMonth.value.year, currentMonth.value.month);
+
+    if (records.isEmpty) {
+      Get.snackbar('提示', '暂无账单数据可导出', snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+
+    final buf = StringBuffer();
+    buf.writeln('日期,类型,金额,分类,备注');
+    for (final b in records) {
+      final date = DateFormat('yyyy-MM-dd').format(b.date);
+      final type = b.isExpense ? '支出' : '收入';
+      final amount = b.amount.toStringAsFixed(2);
+      final cat = categoryLabel(b.category);
+      final note = b.note.replaceAll(',', '，');
+      buf.writeln('$date,$type,$amount,$cat,$note');
+    }
+
+    final dir = await getTemporaryDirectory();
+    final label = allTime ? '全部账单' : '${currentMonth.value.year}年${currentMonth.value.month}月账单';
+    final file = File('${dir.path}/$label.csv');
+    await file.writeAsString(buf.toString(), flush: true);
+
+    await Share.shareXFiles([XFile(file.path)], text: '$label 导出');
+  }
+
   static List<String> generateInsights({
     required List<BillRecord> currentBills,
     required double monthlyExpense,
@@ -275,5 +309,111 @@ class BillService extends GetxService {
         .where((s) => s.contains('👍') || s.contains('坚持'))
         .toList();
     return [...warnings, ...positive].take(3).toList();
+  }
+
+  /// 生成上月总结（用于月度总结卡片）
+  static Map<String, dynamic>? buildMonthlySummary() {
+    final now  = DateTime.now();
+    final prev = DateTime(now.year, now.month - 1, 1);
+    final prevBills = StorageService.billsForMonth(prev.year, prev.month);
+    if (prevBills.isEmpty) return null;
+
+    final expense = prevBills.where((b) => b.isExpense).fold(0.0, (s, b) => s + b.amount);
+    final income  = prevBills.where((b) => !b.isExpense).fold(0.0, (s, b) => s + b.amount);
+
+    final catMap = <String, double>{};
+    for (final b in prevBills.where((b) => b.isExpense)) {
+      catMap[b.category] = (catMap[b.category] ?? 0) + b.amount;
+    }
+    final topCat = catMap.isEmpty ? null :
+        catMap.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+
+    final budgets = StorageService.budgets;
+    double budgetExecRate = -1;
+    if (budgets.isNotEmpty) {
+      final total  = budgets.values.fold(0.0, (s, v) => s + v);
+      budgetExecRate = total > 0 ? (expense / total).clamp(0.0, 2.0) : -1;
+    }
+
+    final history = StorageService.scoreHistory;
+    final curHist  = history.where((h) => h.year == prev.year && h.month == prev.month).firstOrNull;
+    final prevHist = history.where((h) {
+      final pm = DateTime(prev.year, prev.month - 1, 1);
+      return h.year == pm.year && h.month == pm.month;
+    }).firstOrNull;
+    final scoreDiff = (curHist != null && prevHist != null)
+        ? curHist.total - prevHist.total : null;
+
+    String summary;
+    if (expense == 0) {
+      summary = '上月无支出记录，建议保持记账习惯';
+    } else if (income > 0 && expense < income * 0.5) {
+      summary = '上月储蓄率优秀，继续保持！';
+    } else if (budgetExecRate > 1.0) {
+      summary = '上月总支出超出预算，本月注意控制';
+    } else {
+      summary = '上月收支整体良好，继续加油！';
+    }
+
+    return {
+      'month': '${prev.year}年${prev.month}月',
+      'expense': expense,
+      'income': income,
+      'topCat': topCat,
+      'budgetExecRate': budgetExecRate,
+      'scoreDiff': scoreDiff,
+      'summary': summary,
+    };
+  }
+
+  /// 升级版异常检测：区分偶发大额和持续超支
+  static List<String> generateUpgradedInsights({
+    required List<BillRecord> currentBills,
+    required double monthlyExpense,
+  }) {
+    final insights = <String>[];
+    final now = DateTime.now();
+    final budgets = StorageService.budgets;
+
+    final catMap = <String, double>{};
+    for (final b in currentBills.where((b) => b.isExpense)) {
+      catMap[b.category] = (catMap[b.category] ?? 0) + b.amount;
+    }
+
+    final avg3 = <String, double>{};
+    for (var i = 1; i <= 3; i++) {
+      final m = DateTime(now.year, now.month - i, 1);
+      final mb = StorageService.billsForMonth(m.year, m.month);
+      for (final b in mb.where((b) => b.isExpense)) {
+        avg3[b.category] = (avg3[b.category] ?? 0) + b.amount / 3;
+      }
+    }
+
+    final categoryBills = <String, List<BillRecord>>{};
+    for (final b in currentBills.where((b) => b.isExpense)) {
+      categoryBills.putIfAbsent(b.category, () => []).add(b);
+    }
+    for (final entry in categoryBills.entries) {
+      final catAvg = avg3[entry.key] ?? 0;
+      if (catAvg <= 0) continue;
+      final maxBill = entry.value.map((b) => b.amount).reduce((a, b) => a > b ? a : b);
+      if (maxBill > catAvg * 2) {
+        final label = categoryLabel(entry.key);
+        insights.add('「$label」单笔消费偏高（¥${maxBill.toStringAsFixed(0)}），注意是否为必要支出');
+      }
+    }
+
+    if (now.day <= 15) {
+      for (final entry in budgets.entries) {
+        final spent  = catMap[entry.key] ?? 0;
+        final budget = entry.value;
+        if (budget > 0 && spent > budget * 0.8) {
+          final label = categoryLabel(entry.key);
+          insights.add('「$label」本月支出节奏偏快，月中已用 ${(spent / budget * 100).toStringAsFixed(0)}% 预算');
+        }
+      }
+    }
+
+    return insights.take(2).toList();
   }
 }
