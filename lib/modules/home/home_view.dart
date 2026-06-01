@@ -5,9 +5,11 @@ import 'package:intl/intl.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/services/ad_service.dart';
 import '../../core/services/bill_service.dart';
+import '../../core/services/recurring_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/bill_record.dart';
+import '../../data/models/recurring_rule.dart';
 import '../../router/app_pages.dart';
 import '../../widgets/animated_counter.dart';
 import '../../widgets/coin_float_animation.dart';
@@ -91,6 +93,17 @@ class HomeView extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.only(top: 16, bottom: 24),
                 children: [
+                  // 到期账单提醒 Banner
+                  Obx(() {
+                    final dueRules = RecurringService.to.dueRules;
+                    if (dueRules.isEmpty) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Column(
+                        children: dueRules.map((rule) => _DueBanner(rule: rule)).toList(),
+                      ),
+                    );
+                  }),
                   if (overBudget.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -121,6 +134,14 @@ class HomeView extends StatelessWidget {
                       child: _InsightsCard(insights: insights),
                     ),
                   ],
+                  const SizedBox(height: 14),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _HealthScoreCard(
+                      expense: bill.monthlyExpense.value,
+                      income: bill.monthlyIncome.value,
+                    ),
+                  ),
                   const SizedBox(height: 14),
                   _BillSection(bill: bill, context: context),
                   const SizedBox(height: 80),
@@ -543,6 +564,107 @@ class _HomeBillItem extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ── Due Bill Banner ───────────────────────────────────────────────────────────
+
+class _DueBanner extends StatelessWidget {
+  final RecurringRule rule;
+  const _DueBanner({required this.rule});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.warnOrange.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.warnOrange.withValues(alpha: 0.4)),
+      ),
+      child: Row(children: [
+        const Text('🔔', style: TextStyle(fontSize: 18)),
+        const SizedBox(width: 10),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('「${rule.title}」今日到期', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          Text('¥${rule.amount.toStringAsFixed(0)}  ${rule.isExpense ? '支出' : '收入'}',
+              style: AppTheme.caption),
+        ])),
+        TextButton(
+          style: TextButton.styleFrom(
+            backgroundColor: AppTheme.warnOrange,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          onPressed: () async {
+            await RecurringService.to.recordDue(rule);
+            Get.snackbar('已记录', '「${rule.title}」已记录到本月账单', snackPosition: SnackPosition.BOTTOM);
+          },
+          child: const Text('一键记录', style: TextStyle(fontSize: 12)),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── Health Score Preview Card ─────────────────────────────────────────────────
+
+class _HealthScoreCard extends StatelessWidget {
+  final double income;
+  final double expense;
+  const _HealthScoreCard({required this.income, required this.expense});
+
+  int get _quickScore {
+    if (income == 0 && expense == 0) return 60;
+    if (income == 0) return 30;
+    final rate = (income - expense) / income;
+    return (rate.clamp(-0.5, 1.0) * 70 + 30).round().clamp(0, 100);
+  }
+
+  Color get _scoreColor {
+    final s = _quickScore;
+    if (s >= 85) return AppTheme.incomeGreen;
+    if (s >= 70) return const Color(0xFF00B4D8);
+    if (s >= 50) return AppTheme.warnOrange;
+    return AppTheme.expenseRed;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final score = _quickScore;
+    final color = _scoreColor;
+    return GestureDetector(
+      onTap: () => Get.toNamed(Routes.healthScore),
+      child: Container(
+        decoration: AppTheme.cardDecoration,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(children: [
+          Container(
+            width: 52, height: 52,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text('$score',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('财务健康评分', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 2),
+              Text('查看本月财务健康详细分析', style: AppTheme.caption),
+            ]),
+          ),
+          const Icon(Icons.chevron_right, color: Colors.grey),
+        ]),
       ),
     );
   }

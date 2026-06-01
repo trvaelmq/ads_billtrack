@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/services/ad_service.dart';
+import '../../core/services/bill_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../router/app_pages.dart';
 import 'profile_controller.dart';
@@ -93,6 +94,12 @@ class ProfileView extends GetView<ProfileController> {
               }),
           _MenuItem(icon: Icons.account_balance_wallet, label: '预算管理', subtitle: '设置各类别月度预算',
               onTap: () => Get.toNamed(Routes.budget)),
+          _MenuItem(
+            icon: Icons.repeat_outlined,
+            label: '定期账单',
+            subtitle: '管理固定收支，到期一键记录',
+            onTap: () => Get.toNamed(Routes.recurring),
+          ),
           _MenuItem(icon: Icons.people, label: 'AA 分摊计算器', subtitle: '快速计算多人分摊金额',
               onTap: () => Get.toNamed(Routes.split)),
           _MenuItem(icon: Icons.calendar_today, label: '每日签到', subtitle: '签到赚金币，7天连签额外奖励',
@@ -103,8 +110,20 @@ class ProfileView extends GetView<ProfileController> {
             subtitle: '新增自定义收支分类',
             onTap: () => Get.toNamed(Routes.categoryMgmt),
           ),
+          _MenuItem(
+            icon: Icons.monitor_heart_outlined,
+            label: '财务健康评分',
+            subtitle: '查看本月财务健康详细分析',
+            onTap: () => Get.toNamed(Routes.healthScore),
+          ),
           const SizedBox(height: 8),
           _SectionHeader(title: '数据'),
+          _MenuItem(
+            icon: Icons.download_outlined,
+            label: '导出账单',
+            subtitle: '将账单导出为 CSV 文件',
+            onTap: () => _showExportDialog(),
+          ),
           _MenuItem(
             icon: Icons.info_outline,
             label: '隐私政策',
@@ -127,6 +146,30 @@ class ProfileView extends GetView<ProfileController> {
         ],
       ),
     );
+  }
+
+  void _showExportDialog() {
+    Get.dialog(AlertDialog(
+      title: const Text('导出账单'),
+      content: const Text('选择导出范围'),
+      actions: [
+        TextButton(onPressed: Get.back, child: const Text('取消')),
+        TextButton(
+          onPressed: () {
+            Get.back();
+            BillService.to.exportBillsAsCsv();
+          },
+          child: const Text('本月'),
+        ),
+        TextButton(
+          onPressed: () {
+            Get.back();
+            BillService.to.exportBillsAsCsv(allTime: true);
+          },
+          child: const Text('全部'),
+        ),
+      ],
+    ));
   }
 }
 

@@ -45,6 +45,9 @@ abstract class Routes {
   static const healthScore   = '/health-score';
   static const recurring     = '/recurring';
   static const recurringEdit = '/recurring/edit';
+  static const heatmap       = '/report/heatmap';
+  static const categoryDrill = '/report/category';
+  static const compare       = '/report/compare';
 }
 
 class AppPages {
