@@ -23,6 +23,7 @@ import '../modules/calendar/calendar_binding.dart';
 import '../modules/calendar/day_detail_view.dart';
 import '../modules/category_mgmt/category_mgmt_view.dart';
 import '../modules/category_mgmt/category_mgmt_binding.dart';
+import '../modules/health_score/health_score_view.dart';
 
 abstract class Routes {
   static const splash        = '/';
@@ -38,6 +39,9 @@ abstract class Routes {
   static const calendar      = '/calendar';
   static const dayDetail     = '/calendar/day';
   static const categoryMgmt  = '/category-mgmt';
+  static const healthScore   = '/health-score';
+  static const recurring     = '/recurring';
+  static const recurringEdit = '/recurring/edit';
 }
 
 class AppPages {
@@ -76,6 +80,12 @@ class AppPages {
       name: Routes.categoryMgmt,
       page: () => const CategoryMgmtView(),
       binding: CategoryMgmtBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+    GetPage(
+      name: Routes.healthScore,
+      page: () => const HealthScoreView(),
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 300),
     ),
