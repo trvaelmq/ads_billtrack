@@ -5,18 +5,23 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../../data/models/bill_record.dart';
 import '../../data/models/ad_record.dart';
+import '../../data/models/recurring_rule.dart';
+import '../../data/models/health_score_history.dart';
 
 class StorageService {
   static late Box<BillRecord> _billBox;
   static late Box<AdRecord>   _adBox;
+  static late Box<RecurringRule> _recurringBox;
   static late SharedPreferences _prefs;
 
   static Future<void> init() async {
     await Hive.initFlutter();
     Hive.registerAdapter(BillRecordAdapter());
     Hive.registerAdapter(AdRecordAdapter());
-    _billBox = await Hive.openBox<BillRecord>('bill_records');
-    _adBox   = await Hive.openBox<AdRecord>('ad_records');
+    Hive.registerAdapter(RecurringRuleAdapter());
+    _billBox       = await Hive.openBox<BillRecord>('bill_records');
+    _adBox         = await Hive.openBox<AdRecord>('ad_records');
+    _recurringBox  = await Hive.openBox<RecurringRule>('recurring_rules');
     _prefs   = await SharedPreferences.getInstance();
   }
 
@@ -160,4 +165,41 @@ class StorageService {
       List<Map<String, dynamic>> cats) async {
     await _prefs.setString('custom_categories', jsonEncode(cats));
   }
+
+  // ── 定期账单规则 ──────────────────────────────────────────────────
+  static List<RecurringRule> get allRecurringRules =>
+      _recurringBox.values.where((r) => r.isActive).toList()
+        ..sort((a, b) => a.nextDueDate.compareTo(b.nextDueDate));
+
+  static Future<void> saveRecurringRule(RecurringRule rule) =>
+      _recurringBox.put(rule.id, rule);
+
+  static Future<void> deleteRecurringRule(String id) =>
+      _recurringBox.delete(id);
+
+  // ── 健康评分历史 ──────────────────────────────────────────────────
+  static List<HealthScoreHistory> get scoreHistory {
+    final raw = _prefs.getString('health_score_history');
+    if (raw == null) return [];
+    final list = jsonDecode(raw) as List;
+    return list.map((e) => HealthScoreHistory.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  static Future<void> saveScoreHistory(HealthScoreHistory h) async {
+    final list = scoreHistory.where(
+      (e) => !(e.year == h.year && e.month == h.month),
+    ).toList()..add(h);
+    // 只保留最近 12 个月
+    list.sort((a, b) => DateTime(a.year, a.month).compareTo(DateTime(b.year, b.month)));
+    final kept = list.length > 12 ? list.sublist(list.length - 12) : list;
+    await _prefs.setString('health_score_history', jsonEncode(kept.map((e) => e.toJson()).toList()));
+  }
+
+  // ── 月度总结 flag ─────────────────────────────────────────────────
+  static String get _summaryFlagKey {
+    final now = DateTime.now();
+    return 'monthly_summary_shown_${now.year}_${now.month}';
+  }
+  static bool get monthlySummaryShown => _prefs.getBool(_summaryFlagKey) ?? false;
+  static Future<void> setMonthlySummaryShown() => _prefs.setBool(_summaryFlagKey, true);
 }

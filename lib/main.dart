@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'core/services/ad_service.dart';
 import 'core/services/bill_service.dart';
+import 'core/services/recurring_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/storage_service.dart';
 import 'core/theme/app_theme.dart';
@@ -13,6 +14,7 @@ void main() async {
   await NotificationService.init();
   await Get.putAsync(() async => AdService());
   await Get.putAsync(() async => BillService());
+  await Get.putAsync(() async => RecurringService());
   runApp(const MoneyLogApp());
 }
 
