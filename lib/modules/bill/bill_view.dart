@@ -130,7 +130,33 @@ class _BillItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final cat = AppConstants.categoryById(record.category);
     return GestureDetector(
-      onLongPress: onDelete,
+      onLongPress: () {
+        Get.bottomSheet(Container(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            ListTile(
+              leading: const Icon(Icons.people_outline, color: AppTheme.primary),
+              title: const Text('发起分摊'),
+              onTap: () {
+                Get.back();
+                Get.toNamed(Routes.split, arguments: record);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: AppTheme.expenseRed),
+              title: const Text('删除账单', style: TextStyle(color: AppTheme.expenseRed)),
+              onTap: () {
+                Get.back();
+                onDelete();
+              },
+            ),
+          ]),
+        ));
+      },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
         decoration: AppTheme.cardDecoration,
