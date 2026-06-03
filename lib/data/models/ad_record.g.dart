@@ -1,6 +1,10 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
-// ignore_for_file: type=lint
+
 part of 'ad_record.dart';
+
+// **************************************************************************
+// TypeAdapterGenerator
+// **************************************************************************
 
 class AdRecordAdapter extends TypeAdapter<AdRecord> {
   @override
@@ -13,10 +17,10 @@ class AdRecordAdapter extends TypeAdapter<AdRecord> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return AdRecord()
-      ..id          = fields[0] as String
-      ..adType      = fields[1] as String
+      ..id = fields[0] as String
+      ..adType = fields[1] as String
       ..coinsEarned = fields[2] as int
-      ..watchedAt   = fields[3] as DateTime;
+      ..watchedAt = fields[3] as DateTime;
   }
 
   @override
@@ -34,10 +38,12 @@ class AdRecordAdapter extends TypeAdapter<AdRecord> {
   }
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is AdRecordAdapter && runtimeType == other.runtimeType && typeId == other.typeId;
+  int get hashCode => typeId.hashCode;
 
   @override
-  int get hashCode => typeId.hashCode;
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AdRecordAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
 }
