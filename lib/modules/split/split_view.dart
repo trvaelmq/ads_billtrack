@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/bill_record.dart';
+import '../../router/app_pages.dart';
 import 'split_controller.dart';
 
 class SplitView extends StatefulWidget {
@@ -37,6 +38,13 @@ class _SplitViewState extends State<SplitView> {
         backgroundColor: AppTheme.primaryStart,
         title: const Text('账单分摊', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            tooltip: '分摊历史',
+            icon: const Icon(Icons.history, color: Colors.white),
+            onPressed: () => Get.toNamed(Routes.splitHistory),
+          ),
+        ],
       ),
       body: Obx(() => ListView(padding: const EdgeInsets.all(16), children: [
         // 总金额
@@ -119,11 +127,24 @@ class _SplitViewState extends State<SplitView> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Expanded(child: Text(m.name, style: TextStyle(
-                    fontSize: 14,
-                    decoration: m.paid ? TextDecoration.lineThrough : null,
-                    color: m.paid ? AppTheme.textSecondary : AppTheme.textPrimary,
-                  ))),
+                  Expanded(
+                    child: ctrl.isCustom.value
+                        ? TextField(
+                            style: const TextStyle(fontSize: 14),
+                            decoration: InputDecoration(
+                              hintText: m.name,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            ),
+                            onChanged: (v) =>
+                                ctrl.setMemberName(i, v.trim().isEmpty ? '成员${i + 1}' : v),
+                          )
+                        : Text(m.name, style: TextStyle(
+                            fontSize: 14,
+                            decoration: m.paid ? TextDecoration.lineThrough : null,
+                            color: m.paid ? AppTheme.textSecondary : AppTheme.textPrimary,
+                          )),
+                  ),
                   ctrl.isCustom.value
                       ? SizedBox(
                           width: 80,
@@ -149,7 +170,10 @@ class _SplitViewState extends State<SplitView> {
 
         // 分享按钮
         ElevatedButton.icon(
-          onPressed: () => Share.share(ctrl.shareText),
+          onPressed: () async {
+            await ctrl.saveToHistory();
+            await Share.share(ctrl.shareText);
+          },
           icon: const Icon(Icons.share_outlined),
           label: const Text('生成分摊单并分享'),
           style: ElevatedButton.styleFrom(
