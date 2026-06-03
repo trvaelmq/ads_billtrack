@@ -58,14 +58,23 @@ String buildSplitShareText(String desc, double total, List<SplitMember> members)
 class SplitHistoryStore {
   static const _key = 'split_history';
 
-  static Future<List<SplitHistoryEntry>> list() async {
-    final prefs = await SharedPreferences.getInstance();
+  static Future<List> _loadRawList(SharedPreferences prefs) async {
     final raw = prefs.getString(_key);
     if (raw == null) return [];
     try {
-      final decoded = jsonDecode(raw) as List;
+      return jsonDecode(raw) as List;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<List<SplitHistoryEntry>> list() async {
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      final decoded = await _loadRawList(prefs);
       return decoded
-          .map((e) => SplitHistoryEntry.fromJson(e as Map<String, dynamic>))
+          .whereType<Map<String, dynamic>>()
+          .map((e) => SplitHistoryEntry.fromJson(e))
           .toList();
     } catch (_) {
       return [];
@@ -74,20 +83,17 @@ class SplitHistoryStore {
 
   static Future<void> add(SplitHistoryEntry entry) async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_key);
-    final List list = raw != null ? (jsonDecode(raw) as List) : [];
+    final list = await _loadRawList(prefs);
     list.insert(0, entry.toJson());
     if (list.length > 20) list.removeRange(20, list.length);
     await prefs.setString(_key, jsonEncode(list));
   }
 
-  static Future<void> removeAt(DateTime time) async {
+  static Future<void> removeByTime(DateTime time) async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_key);
-    if (raw == null) return;
     final iso = time.toIso8601String();
-    final List list = (jsonDecode(raw) as List)
-        .where((e) => (e as Map)['time'] != iso)
+    final list = (await _loadRawList(prefs))
+        .where((e) => e is! Map || e['time'] != iso)
         .toList();
     await prefs.setString(_key, jsonEncode(list));
   }
