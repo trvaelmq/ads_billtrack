@@ -1,10 +1,10 @@
 // lib/modules/split/split_view.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:share_plus/share_plus.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/bill_record.dart';
 import '../../router/app_pages.dart';
+import 'share_helper.dart';
 import 'split_controller.dart';
 
 class SplitView extends StatefulWidget {
@@ -178,8 +178,9 @@ class _SplitViewState extends State<SplitView> {
         // 分享按钮
         ElevatedButton.icon(
           onPressed: () async {
+            final box = context.findRenderObject() as RenderBox?;
             await ctrl.saveToHistory();
-            await Share.share(ctrl.shareText);
+            await shareWithOrigin(box, ctrl.shareText);
           },
           icon: const Icon(Icons.share_outlined),
           label: const Text('生成分摊单并分享'),

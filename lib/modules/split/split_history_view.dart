@@ -1,8 +1,8 @@
 // lib/modules/split/split_history_view.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:share_plus/share_plus.dart';
 import '../../core/theme/app_theme.dart';
+import 'share_helper.dart';
 import 'split_history_store.dart';
 
 class SplitHistoryView extends StatefulWidget {
@@ -148,7 +148,8 @@ class _HistoryCard extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () => Share.share(
+                  onPressed: () => shareWithOrigin(
+                      context.findRenderObject() as RenderBox?,
                       buildSplitShareText(entry.desc, entry.total, entry.members)),
                   icon: const Icon(Icons.share_outlined, size: 18),
                   label: const Text('重新分享'),
