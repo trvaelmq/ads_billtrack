@@ -178,6 +178,12 @@ class _SplitViewState extends State<SplitView> {
         // 分享按钮
         ElevatedButton.icon(
           onPressed: () async {
+            if (ctrl.totalAmount.value <= 0) {
+              Get.snackbar('提示', '请先输入分摊总金额',
+                  snackPosition: SnackPosition.BOTTOM,
+                  margin: const EdgeInsets.all(12));
+              return;
+            }
             final box = context.findRenderObject() as RenderBox?;
             await ctrl.saveToHistory();
             await shareWithOrigin(box, ctrl.shareText);
