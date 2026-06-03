@@ -1,7 +1,6 @@
 // lib/modules/split/split_controller.dart
-import 'dart:convert';
 import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'split_history_store.dart';
 
 class SplitMember {
   final String name;
@@ -62,7 +61,6 @@ class SplitController extends GetxController {
         paid: !members[index].paid,
       );
       members.refresh();
-      _persist();
     }
   }
 
@@ -73,29 +71,15 @@ class SplitController extends GetxController {
         SplitMember(name: '成员${i + 1}', amount: each)));
   }
 
-  String get shareText {
-    final buf = StringBuffer();
-    buf.writeln('📋 账单分摊：${description.value}');
-    buf.writeln('💰 总金额：¥${totalAmount.value.toStringAsFixed(2)}');
-    buf.writeln('👥 共 ${members.length} 人');
-    buf.writeln('---');
-    for (final m in members) {
-      buf.writeln('${m.name}：¥${m.amount.toStringAsFixed(2)}');
-    }
-    return buf.toString();
-  }
+  String get shareText =>
+      buildSplitShareText(description.value, totalAmount.value, members);
 
-  void _persist() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw   = prefs.getString('split_history');
-    final list  = raw != null ? (jsonDecode(raw) as List) : [];
-    list.insert(0, {
-      'desc': description.value,
-      'total': totalAmount.value,
-      'members': members.map((m) => {'name': m.name, 'amount': m.amount, 'paid': m.paid}).toList(),
-      'time': DateTime.now().toIso8601String(),
-    });
-    if (list.length > 20) list.removeLast();
-    await prefs.setString('split_history', jsonEncode(list));
+  Future<void> saveToHistory() async {
+    await SplitHistoryStore.add(SplitHistoryEntry(
+      desc: description.value,
+      total: totalAmount.value,
+      members: members.toList(),
+      time: DateTime.now(),
+    ));
   }
 }
