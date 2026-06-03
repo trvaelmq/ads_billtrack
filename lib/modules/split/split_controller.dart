@@ -65,10 +65,14 @@ class SplitController extends GetxController {
   }
 
   void _rebuildMembers() {
-    final count  = memberCount.value;
-    final each   = isCustom.value ? 0.0 : (totalAmount.value / count);
-    members.assignAll(List.generate(count, (i) =>
-        SplitMember(name: '成员${i + 1}', amount: each)));
+    final count = memberCount.value;
+    final each  = isCustom.value ? 0.0 : (totalAmount.value / count);
+    final prev  = members.toList(); // 保留已有成员的名字与已付状态
+    members.assignAll(List.generate(count, (i) => SplitMember(
+          name: i < prev.length ? prev[i].name : '成员${i + 1}',
+          amount: each,
+          paid: i < prev.length ? prev[i].paid : false,
+        )));
   }
 
   String get shareText =>
