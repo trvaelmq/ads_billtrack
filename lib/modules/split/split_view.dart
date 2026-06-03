@@ -32,6 +32,13 @@ class _SplitViewState extends State<SplitView> {
   }
 
   @override
+  void dispose() {
+    // 页面退出时释放控制器，避免单例常驻泄漏（无 binding 时需手动清理）。
+    Get.delete<SplitController>();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
