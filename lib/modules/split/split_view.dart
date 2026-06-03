@@ -134,23 +134,18 @@ class _SplitViewState extends State<SplitView> {
                     ),
                   ),
                   const SizedBox(width: 10),
+                  // 成员名在两种模式下都可编辑
                   Expanded(
-                    child: ctrl.isCustom.value
-                        ? TextField(
-                            style: const TextStyle(fontSize: 14),
-                            decoration: InputDecoration(
-                              hintText: m.name,
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                            ),
-                            onChanged: (v) =>
-                                ctrl.setMemberName(i, v.trim().isEmpty ? '成员${i + 1}' : v),
-                          )
-                        : Text(m.name, style: TextStyle(
-                            fontSize: 14,
-                            decoration: m.paid ? TextDecoration.lineThrough : null,
-                            color: m.paid ? AppTheme.textSecondary : AppTheme.textPrimary,
-                          )),
+                    child: TextField(
+                      style: const TextStyle(fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: m.name,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      ),
+                      onChanged: (v) =>
+                          ctrl.setMemberName(i, v.trim().isEmpty ? '成员${i + 1}' : v),
+                    ),
                   ),
                   ctrl.isCustom.value
                       ? SizedBox(
