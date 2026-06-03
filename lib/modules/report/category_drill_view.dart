@@ -13,7 +13,8 @@ class CategoryDrillView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final categoryId = Get.arguments as String;
+    // 防御：缺参数时兜底到首个支出分类，避免白屏崩溃
+    final categoryId = (Get.arguments as String?) ?? AppConstants.expenseCategories.first.id;
     final cat = [
       ...AppConstants.expenseCategories,
       ...AppConstants.incomeCategories,

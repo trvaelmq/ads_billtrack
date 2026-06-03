@@ -6,15 +6,32 @@ import '../../core/theme/app_theme.dart';
 import '../../data/models/bill_record.dart';
 import 'split_controller.dart';
 
-class SplitView extends StatelessWidget {
+class SplitView extends StatefulWidget {
   const SplitView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final bill = Get.arguments as BillRecord;
-    final ctrl = Get.put(SplitController());
-    ctrl.init(bill.amount, bill.note.isEmpty ? '账单分摊' : bill.note);
+  State<SplitView> createState() => _SplitViewState();
+}
 
+class _SplitViewState extends State<SplitView> {
+  late final SplitController ctrl;
+  late final bool fromBill;
+
+  @override
+  void initState() {
+    super.initState();
+    // 兼容两种入口：从账单"发起分摊"传入 BillRecord；从工具箱"AA分摊计算器"无参数进入。
+    final bill = Get.arguments as BillRecord?;
+    fromBill = bill != null;
+    ctrl = Get.put(SplitController());
+    ctrl.init(
+      bill?.amount ?? 0,
+      (bill == null || bill.note.isEmpty) ? '账单分摊' : bill.note,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppTheme.primaryStart,
@@ -29,9 +46,23 @@ class SplitView extends StatelessWidget {
           child: Column(children: [
             Text(ctrl.description.value,
                 style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary)),
-            const SizedBox(height: 4),
-            Text('¥${ctrl.totalAmount.value.toStringAsFixed(2)}',
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.expenseRed)),
+            const SizedBox(height: 8),
+            // 独立计算器：可输入总金额；从账单进入：直接展示金额。
+            fromBill
+                ? Text('¥${ctrl.totalAmount.value.toStringAsFixed(2)}',
+                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.expenseRed))
+                : TextField(
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppTheme.expenseRed),
+                    decoration: const InputDecoration(
+                      prefixText: '¥',
+                      hintText: '输入总金额',
+                      border: InputBorder.none,
+                      isDense: true,
+                    ),
+                    onChanged: (v) => ctrl.setTotal(double.tryParse(v) ?? 0),
+                  ),
           ]),
         ),
         const SizedBox(height: 16),

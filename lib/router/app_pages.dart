@@ -68,7 +68,8 @@ class AppPages {
       name: Routes.budgetDetail,
       page: () => const BudgetDetailView(),
       binding: BindingsBuilder(() {
-        final categoryId = Get.arguments as String;
+        // 防御：缺参数时兜底为空串，categoryById 会回退到默认分类，避免白屏崩溃
+        final categoryId = (Get.arguments as String?) ?? '';
         Get.lazyPut(() => BudgetDetailController(categoryId: categoryId));
       }),
     ),
@@ -81,7 +82,8 @@ class AppPages {
     ),
     GetPage(
       name: Routes.dayDetail,
-      page: () => DayDetailView(date: Get.arguments as DateTime),
+      // 防御：缺参数时兜底为今天，避免白屏崩溃
+      page: () => DayDetailView(date: (Get.arguments as DateTime?) ?? DateTime.now()),
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 300),
     ),

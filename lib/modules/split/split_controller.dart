@@ -25,6 +25,11 @@ class SplitController extends GetxController {
     _rebuildMembers();
   }
 
+  void setTotal(double amount) {
+    totalAmount.value = amount < 0 ? 0 : amount;
+    if (!isCustom.value) _rebuildMembers();
+  }
+
   void setMemberCount(int count) {
     memberCount.value = count.clamp(2, 10);
     _rebuildMembers();
