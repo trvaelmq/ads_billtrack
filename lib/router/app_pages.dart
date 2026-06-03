@@ -12,6 +12,7 @@ import '../modules/stats/stats_binding.dart';
 import '../modules/budget/budget_view.dart';
 import '../modules/budget/budget_binding.dart';
 import '../modules/split/split_view.dart';
+import '../modules/split/split_history_view.dart';
 import '../modules/history/history_view.dart';
 import '../modules/history/history_binding.dart';
 import '../modules/daily_checkin/daily_checkin_view.dart';
@@ -39,6 +40,7 @@ abstract class Routes {
   static const stats         = '/stats';
   static const budget        = '/budget';
   static const split         = '/split';
+  static const splitHistory  = '/split/history';
   static const history       = '/history';
   static const dailyCheckin  = '/daily-checkin';
   static const budgetDetail  = '/budget-detail';
@@ -62,6 +64,7 @@ class AppPages {
     GetPage(name: Routes.stats,        page: () => const StatsView(),        binding: StatsBinding()),
     GetPage(name: Routes.budget,       page: () => const BudgetView(),       binding: BudgetBinding()),
     GetPage(name: Routes.split,        page: () => const SplitView()),
+    GetPage(name: Routes.splitHistory, page: () => const SplitHistoryView()),
     GetPage(name: Routes.history,      page: () => const HistoryView(),      binding: HistoryBinding()),
     GetPage(name: Routes.dailyCheckin, page: () => const DailyCheckinView(), binding: DailyCheckinBinding()),
     GetPage(
