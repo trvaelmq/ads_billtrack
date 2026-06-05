@@ -41,7 +41,7 @@
         <!-- GDT FileProvider -->
         <provider
             android:name="com.qq.e.comm.GDTFileProvider"
-            android:authorities="com.example.ads_billtrack.gdt.fileprovider"
+            android:authorities="com.jileduo.finance.gdt.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
