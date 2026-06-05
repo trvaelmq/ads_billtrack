@@ -1,4 +1,4 @@
-package com.example.ads_billtrack
+package com.jileduo.finance
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine

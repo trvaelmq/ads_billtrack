@@ -1,4 +1,4 @@
-package com.example.ads_billtrack
+package com.jileduo.finance
 
 internal object AdConfig {
     const val APP_ID              = "1216276718"

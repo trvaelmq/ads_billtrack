@@ -17,7 +17,7 @@ class PrivacyDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              '感谢您使用记乐多 · MoneyLog。\n\n'
+              '感谢您使用智探眼。\n\n'
               '我们非常重视您的个人信息与隐私保护。在您开始使用前，请仔细阅读我们的隐私政策。\n\n'
               '主要内容包括：\n'
               '• 我们收集的信息及用途\n'

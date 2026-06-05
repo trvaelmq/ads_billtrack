@@ -15,16 +15,16 @@ void main() async {
   await Get.putAsync(() async => AdService());
   await Get.putAsync(() async => BillService());
   await Get.putAsync(() async => RecurringService());
-  runApp(const MoneyLogApp());
+  runApp(const ZhiTanYanApp());
 }
 
-class MoneyLogApp extends StatelessWidget {
-  const MoneyLogApp({super.key});
+class ZhiTanYanApp extends StatelessWidget {
+  const ZhiTanYanApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: '记乐多 · MoneyLog',
+      title: '智探眼',
       theme: AppTheme.theme,
       initialRoute: Routes.splash,
       getPages: AppPages.pages,
