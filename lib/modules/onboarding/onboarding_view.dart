@@ -22,7 +22,7 @@ class OnboardingView extends GetView<OnboardingController> {
                 child: Image.asset('assets/app_icon_source.png', width: 80, height: 80),
               ),
               const SizedBox(height: 16),
-              const Text('欢迎使用\n记乐多 · MoneyLog',
+              const Text('欢迎使用\n智探眼',
                   style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold, height: 1.4)),
               // const SizedBox(height: 8),
               // const Text('随手记账，看广告解锁更多功能',

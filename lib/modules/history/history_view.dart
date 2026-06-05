@@ -140,7 +140,7 @@ class _UserCard extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Text('记乐多', style: TextStyle(color: Colors.white, fontSize: 12)),
+                child: const Text('智探眼', style: TextStyle(color: Colors.white, fontSize: 12)),
               ),
             ],
           ),
