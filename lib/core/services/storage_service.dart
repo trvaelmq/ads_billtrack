@@ -7,11 +7,13 @@ import '../../data/models/bill_record.dart';
 import '../../data/models/ad_record.dart';
 import '../../data/models/recurring_rule.dart';
 import '../../data/models/health_score_history.dart';
+import '../../data/models/account_record.dart';
 
 class StorageService {
   static late Box<BillRecord> _billBox;
   static late Box<AdRecord>   _adBox;
   static late Box<RecurringRule> _recurringBox;
+  static late Box<AccountRecord> _accountBox;
   static late SharedPreferences _prefs;
 
   static Future<void> init() async {
@@ -19,9 +21,11 @@ class StorageService {
     Hive.registerAdapter(BillRecordAdapter());
     Hive.registerAdapter(AdRecordAdapter());
     Hive.registerAdapter(RecurringRuleAdapter());
+    Hive.registerAdapter(AccountRecordAdapter());
     _billBox       = await Hive.openBox<BillRecord>('bill_records');
     _adBox         = await Hive.openBox<AdRecord>('ad_records');
     _recurringBox  = await Hive.openBox<RecurringRule>('recurring_rules');
+    _accountBox    = await Hive.openBox<AccountRecord>('accounts');
     _prefs   = await SharedPreferences.getInstance();
   }
 
@@ -126,6 +130,28 @@ class StorageService {
           .toList()
         ..sort((a, b) => b.date.compareTo(a.date));
 
+  static List<BillRecord> billsForYear(int year) =>
+      _billBox.values
+          .where((b) => b.date.year == year)
+          .toList()
+        ..sort((a, b) => b.date.compareTo(a.date));
+
+  // ── 资产账户 ──────────────────────────────────────────────────────
+  static List<AccountRecord> get allAccounts =>
+      _accountBox.values.toList()
+        ..sort((a, b) => a.sortOrder != b.sortOrder
+            ? a.sortOrder.compareTo(b.sortOrder)
+            : a.createdAt.compareTo(b.createdAt));
+
+  static AccountRecord? accountById(String id) {
+    try { return _accountBox.values.firstWhere((a) => a.id == id); }
+    catch (_) { return null; }
+  }
+
+  static Future<void> saveAccount(AccountRecord a) => _accountBox.put(a.id, a);
+
+  static Future<void> deleteAccount(String id) => _accountBox.delete(id);
+
   // ── 通知去重 flag ─────────────────────────────────────────────────
   static bool hasFlag(String key) => _prefs.getBool(key) ?? false;
   static Future<void> setFlag(String key) => _prefs.setBool(key, true);
@@ -202,4 +228,13 @@ class StorageService {
   }
   static bool get monthlySummaryShown => _prefs.getBool(_summaryFlagKey) ?? false;
   static Future<void> setMonthlySummaryShown() => _prefs.setBool(_summaryFlagKey, true);
+
+  // ── 注销：清空全部本地数据 ─────────────────────────────────────────
+  static Future<void> wipeAllData() async {
+    await _billBox.clear();
+    await _adBox.clear();
+    await _recurringBox.clear();
+    await _accountBox.clear();
+    await _prefs.clear();
+  }
 }
