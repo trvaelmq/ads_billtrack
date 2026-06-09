@@ -249,6 +249,7 @@ class ProfileView extends GetView<ProfileController> {
     // 清空常驻 Service 的内存缓存，避免注销后仍显示旧数据
     AccountService.to.loadAccounts();
     BillService.to.loadBills();
+    AdService.to.refreshCoins();
     Get.offAllNamed(Routes.splash);
   }
 }
