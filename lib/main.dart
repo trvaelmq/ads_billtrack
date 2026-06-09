@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'core/services/account_service.dart';
 import 'core/services/ad_service.dart';
 import 'core/services/bill_service.dart';
 import 'core/services/recurring_service.dart';
@@ -12,6 +13,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await StorageService.init();
   await NotificationService.init();
+  await Get.putAsync(() async => AccountService());
   await Get.putAsync(() async => AdService());
   await Get.putAsync(() async => BillService());
   await Get.putAsync(() async => RecurringService());
