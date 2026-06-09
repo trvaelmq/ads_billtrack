@@ -189,6 +189,18 @@ class BillService extends GetxService {
     return '💡';
   }
 
+  /// 按范围筛选账单（纯函数，可单测）
+  static List<BillRecord> filterByRange(
+    List<BillRecord> all, {DateTime? month, int? year, bool allTime = false}) {
+    if (allTime) return all;
+    if (year != null) return all.where((b) => b.date.year == year).toList();
+    if (month != null) {
+      return all.where((b) =>
+          b.date.year == month.year && b.date.month == month.month).toList();
+    }
+    return all;
+  }
+
   // 导出账单为 CSV 并分享
   Future<void> exportBillsAsCsv({bool allTime = false}) async {
     final records = allTime
