@@ -94,6 +94,8 @@ class ProfileView extends GetView<ProfileController> {
               }),
           _MenuItem(icon: Icons.account_balance_wallet, label: '预算管理', subtitle: '设置各类别月度预算',
               onTap: () => Get.toNamed(Routes.budget)),
+          _MenuItem(icon: Icons.account_balance, label: '资产账户', subtitle: '管理账户余额，记账自动增减',
+              onTap: () => Get.toNamed(Routes.accounts)),
           _MenuItem(
             icon: Icons.repeat_outlined,
             label: '定期账单',
