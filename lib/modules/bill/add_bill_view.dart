@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/services/account_service.dart';
 import '../../core/theme/app_theme.dart';
 import 'add_bill_controller.dart';
 
@@ -127,6 +128,45 @@ class AddBillView extends GetView<AddBillController> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
+            // 账户选择（无账户时不显示）
+            Obx(() {
+              final accounts = AccountService.to.accounts;
+              if (accounts.isEmpty) return const SizedBox.shrink();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20),
+                  const Text('账户',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8, runSpacing: 8,
+                    children: [
+                      for (final a in accounts)
+                        Obx(() {
+                          final sel = controller.selectedAccountId.value == a.id;
+                          return GestureDetector(
+                            onTap: () => controller.selectedAccountId.value = sel ? null : a.id,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: sel ? AppTheme.primary : AppTheme.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: sel ? AppTheme.primary : Colors.transparent),
+                              ),
+                              child: Text('${a.emoji} ${a.name}',
+                                  style: TextStyle(
+                                      color: sel ? Colors.white : AppTheme.primary,
+                                      fontWeight: sel ? FontWeight.bold : FontWeight.normal,
+                                      fontSize: 13)),
+                            ),
+                          );
+                        }),
+                    ],
+                  ),
+                ],
+              );
+            }),
             const SizedBox(height: 32),
             _ScaleButton(
               onTap: controller.save,
