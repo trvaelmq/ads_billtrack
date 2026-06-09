@@ -10,6 +10,7 @@ class AddBillController extends GetxController {
   final selectedType     = 'expense'.obs;
   final selectedCategory = 'food'.obs;
   final selectedDate     = DateTime.now().obs;
+  final selectedAccountId = RxnString();
 
   List<BillCategory> get currentCategories => selectedType.value == 'expense'
       ? AppConstants.expenseCategories
@@ -42,6 +43,7 @@ class AddBillController extends GetxController {
       category: selectedCategory.value,
       date:     selectedDate.value,
       note:     noteController.text.trim(),
+      accountId: selectedAccountId.value,
     );
     Get.back();
   }

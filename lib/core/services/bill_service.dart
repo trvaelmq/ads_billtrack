@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../data/models/bill_record.dart';
 import '../constants/app_constants.dart';
 import 'notification_service.dart';
+import 'account_service.dart';
 import 'storage_service.dart';
 import 'package:uuid/uuid.dart';
 
@@ -54,6 +55,7 @@ class BillService extends GetxService {
     required String category,
     required DateTime date,
     required String note,
+    String? accountId,
   }) async {
     // 记账前先记录当前支出，用于判断是否刚越过预算阈值
     final prevSpent = expenseByCategory[category] ?? 0.0;
@@ -64,9 +66,14 @@ class BillService extends GetxService {
       ..type     = type
       ..category = category
       ..date     = date
-      ..note     = note;
+      ..note     = note
+      ..accountId = accountId;
     await StorageService.saveBill(bill);
     loadBills();
+
+    if (accountId != null) {
+      await AccountService.to.applyBill(accountId, amount, type == 'expense');
+    }
 
     // 支出类账单：检测预算超限并推送通知
     if (type == 'expense') {
@@ -85,6 +92,10 @@ class BillService extends GetxService {
   }
 
   Future<void> deleteBill(String id) async {
+    final bill = StorageService.allBills.where((b) => b.id == id).firstOrNull;
+    if (bill?.accountId != null) {
+      await AccountService.to.reverseBill(bill!.accountId!, bill.amount, bill.isExpense);
+    }
     await StorageService.deleteBill(id);
     loadBills();
   }
@@ -189,11 +200,33 @@ class BillService extends GetxService {
     return '💡';
   }
 
+  /// 按范围筛选账单（纯函数，可单测）
+  static List<BillRecord> filterByRange(
+    List<BillRecord> all, {DateTime? month, int? year, bool allTime = false}) {
+    if (allTime) return all;
+    if (year != null) return all.where((b) => b.date.year == year).toList();
+    if (month != null) {
+      return all.where((b) =>
+          b.date.year == month.year && b.date.month == month.month).toList();
+    }
+    return all;
+  }
+
   // 导出账单为 CSV 并分享
-  Future<void> exportBillsAsCsv({bool allTime = false}) async {
-    final records = allTime
-        ? StorageService.allBills
-        : StorageService.billsForMonth(currentMonth.value.year, currentMonth.value.month);
+  Future<void> exportBillsAsCsv({DateTime? month, int? year, bool allTime = false}) async {
+    final List<BillRecord> records;
+    final String label;
+    if (allTime) {
+      records = StorageService.allBills;
+      label = '全部账单';
+    } else if (year != null) {
+      records = StorageService.billsForYear(year);
+      label = '$year年账单';
+    } else {
+      final m = month ?? currentMonth.value;
+      records = StorageService.billsForMonth(m.year, m.month);
+      label = '${m.year}年${m.month}月账单';
+    }
 
     if (records.isEmpty) {
       Get.snackbar('提示', '暂无账单数据可导出', snackPosition: SnackPosition.BOTTOM);
@@ -212,7 +245,6 @@ class BillService extends GetxService {
     }
 
     final dir = await getTemporaryDirectory();
-    final label = allTime ? '全部账单' : '${currentMonth.value.year}年${currentMonth.value.month}月账单';
     final file = File('${dir.path}/$label.csv');
     await file.writeAsString(buf.toString(), flush: true);
 

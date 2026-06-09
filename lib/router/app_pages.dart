@@ -31,6 +31,7 @@ import '../modules/recurring/recurring_binding.dart';
 import '../modules/report/heatmap_view.dart';
 import '../modules/report/category_drill_view.dart';
 import '../modules/report/compare_view.dart';
+import '../modules/account/account_list_view.dart';
 
 abstract class Routes {
   static const splash        = '/';
@@ -53,6 +54,7 @@ abstract class Routes {
   static const heatmap       = '/report/heatmap';
   static const categoryDrill = '/report/category';
   static const compare       = '/report/compare';
+  static const accounts      = '/accounts';
 }
 
 class AppPages {
@@ -134,5 +136,6 @@ class AppPages {
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 300),
     ),
+    GetPage(name: Routes.accounts, page: () => const AccountListView()),
   ];
 }

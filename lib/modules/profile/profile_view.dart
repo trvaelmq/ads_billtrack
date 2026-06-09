@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/services/account_service.dart';
 import '../../core/services/ad_service.dart';
 import '../../core/services/bill_service.dart';
 import '../../core/theme/app_theme.dart';
@@ -94,6 +95,8 @@ class ProfileView extends GetView<ProfileController> {
               }),
           _MenuItem(icon: Icons.account_balance_wallet, label: '预算管理', subtitle: '设置各类别月度预算',
               onTap: () => Get.toNamed(Routes.budget)),
+          _MenuItem(icon: Icons.account_balance, label: '资产账户', subtitle: '管理账户余额，记账自动增减',
+              onTap: () => Get.toNamed(Routes.accounts)),
           _MenuItem(
             icon: Icons.repeat_outlined,
             label: '定期账单',
@@ -140,6 +143,26 @@ class ProfileView extends GetView<ProfileController> {
             subtitle: 'MoneyLog v1.0.0',
             onTap: () => showAboutDialog(context: context, applicationName: '记乐多 · MoneyLog', applicationVersion: '1.0.0'),
           ),
+          const SizedBox(height: 8),
+          _SectionHeader(title: '账号'),
+          Container(
+            color: Colors.white,
+            child: ListTile(
+              leading: Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.no_accounts, color: Colors.red, size: 20),
+              ),
+              title: const Text('注销账号',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.red)),
+              subtitle: const Text('清空全部数据并重置', style: TextStyle(fontSize: 12)),
+              trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+              onTap: _confirmDeleteAccount,
+            ),
+          ),
+          const SizedBox(height: 24),
               ],
             ),
           ),
@@ -152,24 +175,82 @@ class ProfileView extends GetView<ProfileController> {
     Get.dialog(AlertDialog(
       title: const Text('导出账单'),
       content: const Text('选择导出范围'),
+      actionsOverflowButtonSpacing: 4,
       actions: [
+        TextButton(onPressed: () { Get.back(); BillService.to.exportBillsAsCsv(); },
+            child: const Text('本月')),
+        TextButton(onPressed: () { Get.back(); _pickMonth(); },
+            child: const Text('选择月份')),
+        TextButton(onPressed: () {
+            Get.back();
+            BillService.to.exportBillsAsCsv(year: DateTime.now().year);
+          }, child: const Text('本年')),
+        TextButton(onPressed: () { Get.back(); _pickYear(); },
+            child: const Text('选择年份')),
+        TextButton(onPressed: () { Get.back(); BillService.to.exportBillsAsCsv(allTime: true); },
+            child: const Text('全部')),
         TextButton(onPressed: Get.back, child: const Text('取消')),
-        TextButton(
-          onPressed: () {
-            Get.back();
-            BillService.to.exportBillsAsCsv();
-          },
-          child: const Text('本月'),
-        ),
-        TextButton(
-          onPressed: () {
-            Get.back();
-            BillService.to.exportBillsAsCsv(allTime: true);
-          },
-          child: const Text('全部'),
-        ),
       ],
     ));
+  }
+
+  Future<void> _pickMonth() async {
+    final now = DateTime.now();
+    final d = await showDatePicker(
+      context: Get.context!,
+      initialDate: now,
+      firstDate: DateTime(2020),
+      lastDate: now,
+      helpText: '选择导出月份（取所选月）',
+    );
+    if (d != null) BillService.to.exportBillsAsCsv(month: DateTime(d.year, d.month));
+  }
+
+  Future<void> _pickYear() async {
+    final now = DateTime.now();
+    final years = [for (int y = now.year; y >= 2020; y--) y];
+    final picked = await Get.dialog<int>(SimpleDialog(
+      title: const Text('选择年份'),
+      children: [
+        for (final y in years)
+          SimpleDialogOption(
+            onPressed: () => Get.back(result: y),
+            child: Text('$y 年'),
+          ),
+      ],
+    ));
+    if (picked != null) BillService.to.exportBillsAsCsv(year: picked);
+  }
+
+  Future<void> _confirmDeleteAccount() async {
+    final first = await Get.dialog<bool>(AlertDialog(
+      title: const Text('注销账号'),
+      content: const Text('将永久删除所有账单、账户、预算、金币等本地数据，且无法恢复。确定继续？'),
+      actions: [
+        TextButton(onPressed: () => Get.back(result: false), child: const Text('取消')),
+        TextButton(onPressed: () => Get.back(result: true),
+            child: const Text('继续', style: TextStyle(color: Colors.red))),
+      ],
+    ));
+    if (first != true) return;
+
+    final second = await Get.dialog<bool>(AlertDialog(
+      title: const Text('最后确认'),
+      content: const Text('真的要清空全部数据吗？此操作不可恢复。'),
+      actions: [
+        TextButton(onPressed: () => Get.back(result: false), child: const Text('我再想想')),
+        TextButton(onPressed: () => Get.back(result: true),
+            child: const Text('确认注销', style: TextStyle(color: Colors.red))),
+      ],
+    ));
+    if (second != true) return;
+
+    await StorageService.wipeAllData();
+    // 清空常驻 Service 的内存缓存，避免注销后仍显示旧数据
+    AccountService.to.loadAccounts();
+    BillService.to.loadBills();
+    AdService.to.refreshCoins();
+    Get.offAllNamed(Routes.splash);
   }
 }
 
