@@ -154,24 +154,51 @@ class ProfileView extends GetView<ProfileController> {
     Get.dialog(AlertDialog(
       title: const Text('导出账单'),
       content: const Text('选择导出范围'),
+      actionsOverflowButtonSpacing: 4,
       actions: [
+        TextButton(onPressed: () { Get.back(); BillService.to.exportBillsAsCsv(); },
+            child: const Text('本月')),
+        TextButton(onPressed: () { Get.back(); _pickMonth(); },
+            child: const Text('选择月份')),
+        TextButton(onPressed: () {
+            Get.back();
+            BillService.to.exportBillsAsCsv(year: DateTime.now().year);
+          }, child: const Text('本年')),
+        TextButton(onPressed: () { Get.back(); _pickYear(); },
+            child: const Text('选择年份')),
+        TextButton(onPressed: () { Get.back(); BillService.to.exportBillsAsCsv(allTime: true); },
+            child: const Text('全部')),
         TextButton(onPressed: Get.back, child: const Text('取消')),
-        TextButton(
-          onPressed: () {
-            Get.back();
-            BillService.to.exportBillsAsCsv();
-          },
-          child: const Text('本月'),
-        ),
-        TextButton(
-          onPressed: () {
-            Get.back();
-            BillService.to.exportBillsAsCsv(allTime: true);
-          },
-          child: const Text('全部'),
-        ),
       ],
     ));
+  }
+
+  Future<void> _pickMonth() async {
+    final now = DateTime.now();
+    final d = await showDatePicker(
+      context: Get.context!,
+      initialDate: now,
+      firstDate: DateTime(2020),
+      lastDate: now,
+      helpText: '选择导出月份（取所选月）',
+    );
+    if (d != null) BillService.to.exportBillsAsCsv(month: DateTime(d.year, d.month));
+  }
+
+  Future<void> _pickYear() async {
+    final now = DateTime.now();
+    final years = [for (int y = now.year; y >= 2020; y--) y];
+    final picked = await Get.dialog<int>(SimpleDialog(
+      title: const Text('选择年份'),
+      children: [
+        for (final y in years)
+          SimpleDialogOption(
+            onPressed: () => Get.back(result: y),
+            child: Text('$y 年'),
+          ),
+      ],
+    ));
+    if (picked != null) BillService.to.exportBillsAsCsv(year: picked);
   }
 }
 
