@@ -101,16 +101,19 @@ class Mortgage {
     required double principal, required double annualRatePct, required double years,
     required int paidMonths, required double prepayAmount, required PrepayStrategy strategy}) {
     final n = (years * 12).round();
+    if (n <= 0) return const PrepayResult(0, 0, 0, 0);
+    final paid = paidMonths.clamp(0, n - 1).toInt();
+    final pre = prepayAmount < 0 ? 0.0 : prepayAmount;
     final r = annualRatePct / 100 / 12;
     final origMonthly = (r == 0)
         ? principal / n
         : principal * r * pow(1 + r, n) / (pow(1 + r, n) - 1);
-    final remainBefore = _remainingPrincipalEI(principal, r, n, paidMonths);
+    final remainBefore = _remainingPrincipalEI(principal, r, n, paid);
     // 原方案：剩余期间还要付的利息
-    final remainMonths = n - paidMonths;
+    final remainMonths = n - paid;
     final origRemainInterest = origMonthly * remainMonths - remainBefore;
 
-    final remainAfter = (remainBefore - prepayAmount).clamp(0, double.infinity).toDouble();
+    final remainAfter = (remainBefore - pre).clamp(0, double.infinity).toDouble();
 
     double newMonthly;
     int newMonths;
