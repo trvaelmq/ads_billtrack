@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/calc/mortgage.dart';
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
 
@@ -42,7 +43,7 @@ class ToolsView extends StatelessWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
                   _ToolCard(
-                    emoji: '🏦', title: '贷款计算', subtitle: '月供 · 总利息',
+                    emoji: '🏦', title: '房贷计算', subtitle: '月供·提前还款',
                     color: const Color(0xFF5C6BC0),
                     onTap: () => Get.to(() => const LoanPage()),
                   ),
@@ -219,56 +220,295 @@ class LoanPage extends StatefulWidget {
   State<LoanPage> createState() => _LoanPageState();
 }
 
-class _LoanPageState extends State<LoanPage> {
+class _LoanPageState extends State<LoanPage> with SingleTickerProviderStateMixin {
+  late final TabController _tab;
+
+  @override
+  void initState() {
+    super.initState();
+    _tab = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() { _tab.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: AppTheme.primaryStart,
+        elevation: 0,
+        title: const Text('🏦 房贷计算',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          onPressed: () => Get.back(),
+        ),
+        bottom: TabBar(
+          controller: _tab,
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          tabs: const [Tab(text: '房贷计算'), Tab(text: '提前还款')],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tab,
+        children: const [_MortgageTab(), _PrepayTab()],
+      ),
+    );
+  }
+}
+
+// ── 房贷计算 Tab ────────────────────────────────────────────────
+class _MortgageTab extends StatefulWidget {
+  const _MortgageTab();
+  @override
+  State<_MortgageTab> createState() => _MortgageTabState();
+}
+
+class _MortgageTabState extends State<_MortgageTab>
+    with AutomaticKeepAliveClientMixin {
+  int _loanType = 0; // 0商业 1公积金 2组合
+  RepayMethod _method = RepayMethod.equalInstallment;
+
   final _amt  = TextEditingController();
   final _rate = TextEditingController(text: '4.1');
-  final _year = TextEditingController(text: '20');
+  final _year = TextEditingController(text: '30');
+  final _fundAmt  = TextEditingController();
+  final _fundRate = TextEditingController(text: '3.1');
+  final _commAmt  = TextEditingController();
+  final _commRate = TextEditingController(text: '4.1');
   List<(String, String)>? _res;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  void _calc() {
+    final years = double.tryParse(_year.text) ?? 0;
+    if (years <= 0) return;
+    if (_loanType == 2) {
+      final fp = double.tryParse(_fundAmt.text) ?? 0;
+      final fr = double.tryParse(_fundRate.text) ?? 0;
+      final cp = double.tryParse(_commAmt.text) ?? 0;
+      final cr = double.tryParse(_commRate.text) ?? 0;
+      if (fp + cp <= 0) return;
+      final r = Mortgage.combined(
+        fundPrincipal: fp, fundRatePct: fr,
+        commercialPrincipal: cp, commercialRatePct: cr,
+        years: years, method: _method);
+      setState(() => _res = [
+        (_method == RepayMethod.equalInstallment ? '月供' : '首月供',
+            '¥${r.monthlyPayment.toStringAsFixed(2)}'),
+        ('还款总额', '¥${r.totalPayment.toStringAsFixed(2)}'),
+        ('支付利息', '¥${r.totalInterest.toStringAsFixed(2)}'),
+      ]);
+    } else {
+      final p = double.tryParse(_amt.text) ?? 0;
+      final rate = double.tryParse(_rate.text) ?? 0;
+      if (p <= 0) return;
+      if (_method == RepayMethod.equalInstallment) {
+        final r = Mortgage.equalInstallment(principal: p, annualRatePct: rate, years: years);
+        setState(() => _res = [
+          ('月供', '¥${r.monthlyPayment.toStringAsFixed(2)}'),
+          ('还款总额', '¥${r.totalPayment.toStringAsFixed(2)}'),
+          ('支付利息', '¥${r.totalInterest.toStringAsFixed(2)}'),
+        ]);
+      } else {
+        final r = Mortgage.equalPrincipal(principal: p, annualRatePct: rate, years: years);
+        setState(() => _res = [
+          ('首月供', '¥${r.firstMonthPayment.toStringAsFixed(2)}'),
+          ('末月供', '¥${r.lastMonthPayment.toStringAsFixed(2)}'),
+          ('每月递减', '¥${r.monthlyDecrease.toStringAsFixed(2)}'),
+          ('还款总额', '¥${r.totalPayment.toStringAsFixed(2)}'),
+          ('支付利息', '¥${r.totalInterest.toStringAsFixed(2)}'),
+        ]);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final c in [_amt,_rate,_year,_fundAmt,_fundRate,_commAmt,_commRate]) { c.dispose(); }
+    super.dispose();
+  }
+
+  Widget _seg(List<String> labels, int val, ValueChanged<int> onChange) => Row(
+    children: List.generate(labels.length, (i) {
+      final sel = i == val;
+      return Expanded(child: GestureDetector(
+        onTap: () => setState(() { onChange(i); _res = null; }),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: sel ? AppTheme.primary : AppTheme.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(labels[i], textAlign: TextAlign.center,
+            style: TextStyle(color: sel ? Colors.white : AppTheme.primary,
+              fontSize: 13, fontWeight: FontWeight.w600)),
+        ),
+      ));
+    }),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const Text('贷款类型', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+        const SizedBox(height: 8),
+        _seg(const ['商业贷','公积金贷','组合贷'], _loanType, (v) => _loanType = v),
+        const SizedBox(height: 16),
+        const Text('还款方式', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+        const SizedBox(height: 8),
+        _seg(const ['等额本息','等额本金'], _method.index, (v) => _method = RepayMethod.values[v]),
+        const SizedBox(height: 16),
+        if (_loanType == 2) ...[
+          TextField(controller: _fundAmt,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: _dec('公积金贷款额', suffix: '元')),
+          const SizedBox(height: 12),
+          TextField(controller: _fundRate,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: _dec('公积金年利率', suffix: '%', hint: '3.1')),
+          const SizedBox(height: 12),
+          TextField(controller: _commAmt,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: _dec('商业贷款额', suffix: '元')),
+          const SizedBox(height: 12),
+          TextField(controller: _commRate,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: _dec('商业年利率', suffix: '%', hint: '4.1')),
+        ] else ...[
+          TextField(controller: _amt,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: _dec('贷款金额', suffix: '元', hint: '如：1000000')),
+          const SizedBox(height: 12),
+          TextField(controller: _rate,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: _dec('年利率', suffix: '%',
+                  hint: _loanType == 1 ? '公积金约3.1' : '商业约4.1')),
+        ],
+        const SizedBox(height: 12),
+        TextField(controller: _year,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: _dec('贷款年限', suffix: '年', hint: '30')),
+        const SizedBox(height: 24),
+        _CalcButton(onTap: _calc),
+        if (_res != null) ...[const SizedBox(height: 20), _ResultBox(_res!)],
+      ]),
+    );
+  }
+}
+
+// ── 提前还款 Tab ────────────────────────────────────────────────
+class _PrepayTab extends StatefulWidget {
+  const _PrepayTab();
+  @override
+  State<_PrepayTab> createState() => _PrepayTabState();
+}
+
+class _PrepayTabState extends State<_PrepayTab>
+    with AutomaticKeepAliveClientMixin {
+  final _amt   = TextEditingController(text: '1000000');
+  final _rate  = TextEditingController(text: '4.1');
+  final _year  = TextEditingController(text: '30');
+  final _paid  = TextEditingController(text: '36');
+  final _prepay= TextEditingController(text: '200000');
+  PrepayStrategy _strategy = PrepayStrategy.shortenTerm;
+  List<(String, String)>? _res;
+
+  @override
+  bool get wantKeepAlive => true;
 
   void _calc() {
     final p = double.tryParse(_amt.text) ?? 0;
-    final r = (double.tryParse(_rate.text) ?? 0) / 100 / 12;
-    final n = (double.tryParse(_year.text) ?? 0) * 12;
-    if (p <= 0 || r <= 0 || n <= 0) return;
-    final monthly = p * r * pow(1 + r, n) / (pow(1 + r, n) - 1);
-    final total   = monthly * n;
+    final rate = double.tryParse(_rate.text) ?? 0;
+    final years = double.tryParse(_year.text) ?? 0;
+    final paid = int.tryParse(_paid.text) ?? 0;
+    final pre  = double.tryParse(_prepay.text) ?? 0;
+    if (p <= 0 || years <= 0 || pre <= 0) return;
+    final r = Mortgage.prepay(
+      principal: p, annualRatePct: rate, years: years,
+      paidMonths: paid, prepayAmount: pre, strategy: _strategy);
+    final yrs = r.newRemainingMonths ~/ 12;
+    final mos = r.newRemainingMonths % 12;
     setState(() => _res = [
-      ('月供', '¥${monthly.toStringAsFixed(2)}'),
-      ('还款总额', '¥${total.toStringAsFixed(2)}'),
-      ('支付利息', '¥${(total - p).toStringAsFixed(2)}'),
+      ('节省利息', '¥${r.savedInterest.toStringAsFixed(2)}'),
+      ('原月供', '¥${r.originalMonthlyPayment.toStringAsFixed(2)}'),
+      ('新月供', '¥${r.newMonthlyPayment.toStringAsFixed(2)}'),
+      ('剩余期限', yrs > 0 ? '$yrs 年 $mos 个月' : '${r.newRemainingMonths} 个月'),
     ]);
   }
 
   @override
-  void dispose() { _amt.dispose(); _rate.dispose(); _year.dispose(); super.dispose(); }
+  void dispose() {
+    for (final c in [_amt,_rate,_year,_paid,_prepay]) { c.dispose(); }
+    super.dispose();
+  }
 
   @override
-  Widget build(BuildContext context) => _ToolPageBase(
-        title: '🏦 贷款计算',
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            const Text('等额还款（本息）', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-            const SizedBox(height: 16),
-            TextField(controller: _amt,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: _dec('贷款金额', suffix: '元', hint: '如：500000')),
-            const SizedBox(height: 14),
-            Row(children: [
-              Expanded(child: TextField(controller: _rate,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: _dec('年利率', suffix: '%', hint: '4.1'))),
-              const SizedBox(width: 14),
-              Expanded(child: TextField(controller: _year,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: _dec('贷款年限', suffix: '年', hint: '20'))),
-            ]),
-            const SizedBox(height: 24),
-            _CalcButton(onTap: _calc),
-            if (_res != null) ...[const SizedBox(height: 20), _ResultBox(_res!)],
-          ]),
-        ),
-      );
+  Widget build(BuildContext context) {
+    super.build(context);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const Text('基于等额本息估算', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+        const SizedBox(height: 16),
+        TextField(controller: _amt,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: _dec('原贷款金额', suffix: '元')),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: TextField(controller: _rate,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: _dec('年利率', suffix: '%'))),
+          const SizedBox(width: 12),
+          Expanded(child: TextField(controller: _year,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: _dec('贷款年限', suffix: '年'))),
+        ]),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: TextField(controller: _paid,
+              keyboardType: TextInputType.number,
+              decoration: _dec('已还月数', suffix: '月'))),
+          const SizedBox(width: 12),
+          Expanded(child: TextField(controller: _prepay,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: _dec('提前还款额', suffix: '元'))),
+        ]),
+        const SizedBox(height: 16),
+        Row(children: [
+          Expanded(child: GestureDetector(
+            onTap: () => setState(() { _strategy = PrepayStrategy.shortenTerm; _res = null; }),
+            child: _strategyChip('缩短年限', _strategy == PrepayStrategy.shortenTerm))),
+          const SizedBox(width: 8),
+          Expanded(child: GestureDetector(
+            onTap: () => setState(() { _strategy = PrepayStrategy.reducePayment; _res = null; }),
+            child: _strategyChip('减少月供', _strategy == PrepayStrategy.reducePayment))),
+        ]),
+        const SizedBox(height: 24),
+        _CalcButton(onTap: _calc),
+        if (_res != null) ...[const SizedBox(height: 20), _ResultBox(_res!)],
+      ]),
+    );
+  }
+
+  Widget _strategyChip(String label, bool sel) => Container(
+    padding: const EdgeInsets.symmetric(vertical: 12),
+    decoration: BoxDecoration(
+      color: sel ? AppTheme.primary : AppTheme.primary.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Text(label, textAlign: TextAlign.center,
+      style: TextStyle(color: sel ? Colors.white : AppTheme.primary,
+        fontSize: 13, fontWeight: FontWeight.w600)),
+  );
 }
 
 // ── 投资收益页 ─────────────────────────────────────────────────────────────────
