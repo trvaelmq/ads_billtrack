@@ -19,7 +19,8 @@ void main() async {
   await Get.putAsync(() async => AdService());
   await Get.putAsync(() async => BillService());
   await Get.putAsync(() async => RecurringService());
-  Get.put(ApiClient());
+  // permanent: ApiClient 非 GetxService,防止被 SmartManagement 回收
+  Get.put(ApiClient(), permanent: true);
   await Get.putAsync(() async => AuthService(Get.find<ApiClient>()));
   // 静默校验本地 token，不阻塞启动
   AuthService.to.validateOnLaunch();
