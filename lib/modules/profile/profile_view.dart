@@ -8,6 +8,7 @@ import '../../core/services/ad_service.dart';
 import '../../core/services/bill_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../router/app_pages.dart';
+import '../../core/services/auth_service.dart';
 import 'profile_controller.dart';
 
 class ProfileView extends GetView<ProfileController> {
@@ -53,8 +54,15 @@ class ProfileView extends GetView<ProfileController> {
                       children: [
                         Row(
                           children: [
-                            Obx(() => Text(controller.nickname.value,
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20))),
+                            Obx(() {
+                              final auth = AuthService.to;
+                              final info = auth.userInfo.value;
+                              final name = auth.isLoggedIn.value && info != null
+                                  ? (info.nickname.isNotEmpty ? info.nickname : info.username)
+                                  : controller.nickname.value;
+                              return Text(name,
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20));
+                            }),
                             const SizedBox(width: 6),
                             const Icon(Icons.edit, color: Colors.white54, size: 16),
                           ],
@@ -63,6 +71,19 @@ class ProfileView extends GetView<ProfileController> {
                           '加入于 ${DateFormat('yyyy年MM月').format(DateTime.parse(controller.joinDate))}',
                           style: const TextStyle(color: Colors.white70, fontSize: 13),
                         ),
+                        const SizedBox(height: 2),
+                        Obx(() {
+                          final auth = AuthService.to;
+                          if (auth.isLoggedIn.value) {
+                            return Text('@${auth.userInfo.value?.username ?? ''}',
+                                style: const TextStyle(color: Colors.white54, fontSize: 12));
+                          }
+                          return GestureDetector(
+                            onTap: () => Get.toNamed(Routes.login),
+                            child: const Text('未登录，点击登录 >',
+                                style: TextStyle(color: Colors.white70, fontSize: 12)),
+                          );
+                        }),
                       ],
                     ),
                   ),
@@ -145,6 +166,17 @@ class ProfileView extends GetView<ProfileController> {
           ),
           const SizedBox(height: 8),
           _SectionHeader(title: '账号'),
+          Obx(() => AuthService.to.isLoggedIn.value
+              ? _MenuItem(
+                  icon: Icons.logout,
+                  label: '退出登录',
+                  subtitle: '仅退出账号，本地记账数据保留',
+                  onTap: _confirmLogout)
+              : _MenuItem(
+                  icon: Icons.login,
+                  label: '登录/注册',
+                  subtitle: '登录极乐多账号',
+                  onTap: () => Get.toNamed(Routes.login))),
           Container(
             color: Colors.white,
             child: ListTile(
@@ -222,6 +254,21 @@ class ProfileView extends GetView<ProfileController> {
     if (picked != null) BillService.to.exportBillsAsCsv(year: picked);
   }
 
+  Future<void> _confirmLogout() async {
+    final ok = await Get.dialog<bool>(AlertDialog(
+      title: const Text('退出登录'),
+      content: const Text('退出后本地记账数据保留，可随时重新登录。确定退出？'),
+      actions: [
+        TextButton(onPressed: () => Get.back(result: false), child: const Text('取消')),
+        TextButton(onPressed: () => Get.back(result: true),
+            child: const Text('退出', style: TextStyle(color: Colors.red))),
+      ],
+    ));
+    if (ok != true) return;
+    await AuthService.to.logout();
+    Get.snackbar('已退出登录', '本地数据已保留', snackPosition: SnackPosition.BOTTOM);
+  }
+
   Future<void> _confirmDeleteAccount() async {
     final first = await Get.dialog<bool>(AlertDialog(
       title: const Text('注销账号'),
@@ -245,6 +292,7 @@ class ProfileView extends GetView<ProfileController> {
     ));
     if (second != true) return;
 
+    if (AuthService.to.isLoggedIn.value) await AuthService.to.logout();
     await StorageService.wipeAllData();
     // 清空常驻 Service 的内存缓存，避免注销后仍显示旧数据
     AccountService.to.loadAccounts();

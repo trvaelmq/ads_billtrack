@@ -32,6 +32,10 @@ import '../modules/report/heatmap_view.dart';
 import '../modules/report/category_drill_view.dart';
 import '../modules/report/compare_view.dart';
 import '../modules/account/account_list_view.dart';
+import '../modules/auth/login_view.dart';
+import '../modules/auth/login_controller.dart';
+import '../modules/auth/register_view.dart';
+import '../modules/auth/register_controller.dart';
 
 abstract class Routes {
   static const splash        = '/';
@@ -55,6 +59,8 @@ abstract class Routes {
   static const categoryDrill = '/report/category';
   static const compare       = '/report/compare';
   static const accounts      = '/accounts';
+  static const login         = '/login';
+  static const register      = '/register';
 }
 
 class AppPages {
@@ -137,5 +143,19 @@ class AppPages {
       transitionDuration: const Duration(milliseconds: 300),
     ),
     GetPage(name: Routes.accounts, page: () => const AccountListView()),
+    GetPage(
+      name: Routes.login,
+      page: () => const LoginView(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => LoginController())),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+    GetPage(
+      name: Routes.register,
+      page: () => const RegisterView(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => RegisterController())),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
   ];
 }

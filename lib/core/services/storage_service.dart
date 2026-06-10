@@ -229,6 +229,29 @@ class StorageService {
   static bool get monthlySummaryShown => _prefs.getBool(_summaryFlagKey) ?? false;
   static Future<void> setMonthlySummaryShown() => _prefs.setBool(_summaryFlagKey, true);
 
+  // ── 认证（登录 Token 与用户信息）─────────────────────────────────
+  static String? get authToken => _prefs.getString('auth_token');
+  static Future<void> setAuthToken(String v) => _prefs.setString('auth_token', v);
+
+  static Map<String, dynamic>? get authUserInfo {
+    final raw = _prefs.getString('auth_user_info');
+    if (raw == null) return null;
+    // 防御:本地数据损坏时按未登录处理,避免启动崩溃
+    try {
+      return jsonDecode(raw) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> setAuthUserInfo(Map<String, dynamic> json) =>
+      _prefs.setString('auth_user_info', jsonEncode(json));
+
+  static Future<void> clearAuth() async {
+    await _prefs.remove('auth_token');
+    await _prefs.remove('auth_user_info');
+  }
+
   // ── 注销：清空全部本地数据 ─────────────────────────────────────────
   static Future<void> wipeAllData() async {
     await _billBox.clear();
