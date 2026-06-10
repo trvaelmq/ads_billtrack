@@ -6,6 +6,8 @@ import 'core/services/bill_service.dart';
 import 'core/services/recurring_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/storage_service.dart';
+import 'core/network/api_client.dart';
+import 'core/services/auth_service.dart';
 import 'core/theme/app_theme.dart';
 import 'router/app_pages.dart';
 
@@ -17,6 +19,10 @@ void main() async {
   await Get.putAsync(() async => AdService());
   await Get.putAsync(() async => BillService());
   await Get.putAsync(() async => RecurringService());
+  Get.put(ApiClient());
+  await Get.putAsync(() async => AuthService(Get.find<ApiClient>()));
+  // 静默校验本地 token，不阻塞启动
+  AuthService.to.validateOnLaunch();
   runApp(const MoneyLogApp());
 }
 
