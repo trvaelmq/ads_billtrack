@@ -71,7 +71,12 @@ class AuthService extends GetxService {
     };
     final result = await _api.postJson<void>('/api/auth/register', body);
     if (!result.success) return result;
-    return login(username, password);
+    final loginResult = await login(username, password);
+    if (!loginResult.success) {
+      return ApiResult(
+          code: loginResult.code, message: '注册成功，自动登录失败，请手动登录');
+    }
+    return loginResult;
   }
 
   Future<ApiResult<void>> login(String username, String password) async {
@@ -84,11 +89,16 @@ class AuthService extends GetxService {
       return ApiResult(code: result.code, message: result.message);
     }
     final data = result.data!;
-    _token = data['token'] as String;
-    final info = UserInfo.fromJson(data['userInfo'] as Map<String, dynamic>);
+    final token = data['token'] as String?;
+    final userJson = data['userInfo'];
+    if (token == null || token.isEmpty || userJson is! Map<String, dynamic>) {
+      return ApiResult(code: -1, message: '服务端响应异常，请稍后重试');
+    }
+    _token = token;
+    final info = UserInfo.fromJson(userJson);
     userInfo.value = info;
     isLoggedIn.value = true;
-    await StorageService.setAuthToken(_token!);
+    await StorageService.setAuthToken(token);
     await StorageService.setAuthUserInfo(info.toJson());
     return ApiResult(code: result.code, message: result.message);
   }

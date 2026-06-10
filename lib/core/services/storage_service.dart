@@ -236,7 +236,12 @@ class StorageService {
   static Map<String, dynamic>? get authUserInfo {
     final raw = _prefs.getString('auth_user_info');
     if (raw == null) return null;
-    return jsonDecode(raw) as Map<String, dynamic>;
+    // 防御:本地数据损坏时按未登录处理,避免启动崩溃
+    try {
+      return jsonDecode(raw) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
   }
 
   static Future<void> setAuthUserInfo(Map<String, dynamic> json) =>
