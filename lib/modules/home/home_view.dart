@@ -13,6 +13,7 @@ import '../../data/models/recurring_rule.dart';
 import '../../router/app_pages.dart';
 import '../../widgets/animated_counter.dart';
 import '../../widgets/coin_float_animation.dart';
+import '../health_score/health_score_view.dart';
 
 class HomeView extends StatelessWidget {
   const HomeView({super.key});
@@ -126,10 +127,8 @@ class HomeView extends StatelessWidget {
                     ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _HealthScoreCard(
-                      expense: bill.monthlyExpense.value,
-                      income: bill.monthlyIncome.value,
-                    ),
+                    // 非 const：记账后随 Obx 重建以刷新分数
+                    child: _HealthScoreCard(),
                   ),
                   const SizedBox(height: 14),
                   Padding(
@@ -704,16 +703,10 @@ class _SummaryChip extends StatelessWidget {
 // ── Health Score Preview Card ─────────────────────────────────────────────────
 
 class _HealthScoreCard extends StatelessWidget {
-  final double income;
-  final double expense;
-  const _HealthScoreCard({required this.income, required this.expense});
+  const _HealthScoreCard();
 
-  int get _quickScore {
-    if (income == 0 && expense == 0) return 60;
-    if (income == 0) return 30;
-    final rate = (income - expense) / income;
-    return (rate.clamp(-0.5, 1.0) * 70 + 30).round().clamp(0, 100);
-  }
+  // 与财务健康页同一套六维算法，避免两处分数不一致
+  int get _quickScore => HealthScoreView.calcTotal(BillService.to);
 
   Color get _scoreColor {
     final s = _quickScore;

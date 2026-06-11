@@ -48,6 +48,9 @@ class HealthScoreView extends StatelessWidget {
     );
   }
 
+  /// 总分计算入口，供首页评分卡复用，保证与本页分数一致
+  static int calcTotal(BillService bill) => _calcScore(bill).total;
+
   static _ScoreResult _calcScore(BillService bill) {
     final now        = DateTime.now();
     final bills      = StorageService.billsForMonth(now.year, now.month);
