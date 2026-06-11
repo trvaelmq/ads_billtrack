@@ -1,6 +1,7 @@
 // lib/modules/auth/register_controller.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/services/auth_service.dart';
 import '../../router/app_pages.dart';
 import 'auth_validators.dart';
@@ -13,6 +14,14 @@ class RegisterController extends GetxController {
   final emailController = TextEditingController();
   final nicknameController = TextEditingController();
   final loading = false.obs;
+  final agreedToPrivacy = false.obs;
+
+  Future<void> openPrivacyPolicy() async {
+    final uri = Uri.parse('https://wuhuazizzz.github.io/jileduo/privacy');
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      Get.snackbar('提示', '无法打开隐私政策页面', snackPosition: SnackPosition.BOTTOM);
+    }
+  }
 
   String? _validate() {
     return AuthValidators.username(usernameController.text.trim()) ??

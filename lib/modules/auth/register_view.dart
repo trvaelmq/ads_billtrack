@@ -71,11 +71,58 @@ class RegisterView extends GetView<RegisterController> {
               prefixIcon: Icon(Icons.badge_outlined),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
+          Obx(() => Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Checkbox(
+                      value: controller.agreedToPrivacy.value,
+                      onChanged: (v) =>
+                          controller.agreedToPrivacy.value = v ?? false,
+                      activeColor: AppTheme.primary,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => controller.agreedToPrivacy.value =
+                          !controller.agreedToPrivacy.value,
+                      child: Row(
+                        children: [
+                          const Text('我已阅读并同意',
+                              style: TextStyle(
+                                  color: AppTheme.textSecondary, fontSize: 13)),
+                          GestureDetector(
+                            onTap: controller.openPrivacyPolicy,
+                            child: const Text(
+                              '《隐私政策》',
+                              style: TextStyle(
+                                color: AppTheme.primary,
+                                fontSize: 13,
+                                decoration: TextDecoration.underline,
+                                decorationColor: AppTheme.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              )),
+          const SizedBox(height: 16),
           Obx(() => SizedBox(
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: controller.loading.value ? null : controller.submit,
+                  onPressed:
+                      controller.loading.value || !controller.agreedToPrivacy.value
+                          ? null
+                          : controller.submit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryStart,
                     foregroundColor: Colors.white,
