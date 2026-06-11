@@ -18,7 +18,7 @@
         <!-- GDT App ID -->
         <meta-data
             android:name="GDTAPPID"
-            android:value="1216276718" />
+            android:value="1218204331" />
 
         <activity
             android:name=".MainActivity"
