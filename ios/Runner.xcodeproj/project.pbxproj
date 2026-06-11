@@ -496,7 +496,7 @@
 				DEVELOPMENT_TEAM = P7MM5WZNF6;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "记乐多";
+				INFOPLIST_KEY_CFBundleDisplayName = "智探眼";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -690,7 +690,7 @@
 				DEVELOPMENT_TEAM = P7MM5WZNF6;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "记乐多";
+				INFOPLIST_KEY_CFBundleDisplayName = "智探眼";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -724,7 +724,7 @@
 				DEVELOPMENT_TEAM = P7MM5WZNF6;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "记乐多";
+				INFOPLIST_KEY_CFBundleDisplayName = "智探眼";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
