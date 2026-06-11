@@ -23,7 +23,7 @@ class LoginView extends GetView<LoginController> {
           Center(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: Image.asset('assets/app_icon_source.png', width: 80, height: 80),
+              child: Image.asset('assets/app_icon.png', width: 80, height: 80),
             ),
           ),
           const SizedBox(height: 32),

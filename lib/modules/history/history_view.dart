@@ -131,7 +131,7 @@ class _UserCard extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.25),
                   shape: BoxShape.circle,
                 ),
-                child: ClipOval(child: Image.asset('assets/app_icon_source.png', width: 56, height: 56)),
+                child: ClipOval(child: Image.asset('assets/app_icon.png', width: 56, height: 56)),
               ),
               const SizedBox(height: 6),
               Container(

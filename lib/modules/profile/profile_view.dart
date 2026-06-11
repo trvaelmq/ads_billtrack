@@ -36,7 +36,7 @@ class ProfileView extends GetView<ProfileController> {
                   radius: 36,
                   backgroundColor: Colors.white.withValues(alpha: 0.2),
                   child: ClipOval(
-                    child: Image.asset('assets/app_icon_source.png', width: 60, height: 60),
+                    child: Image.asset('assets/app_icon.png', width: 60, height: 60),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -175,7 +175,7 @@ class ProfileView extends GetView<ProfileController> {
               : _MenuItem(
                   icon: Icons.login,
                   label: '登录/注册',
-                  subtitle: '登录极乐多账号',
+                  subtitle: '登录智探眼账号',
                   onTap: () => Get.toNamed(Routes.login))),
           Container(
             color: Colors.white,
