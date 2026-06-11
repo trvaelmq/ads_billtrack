@@ -160,9 +160,9 @@ class ProfileView extends GetView<ProfileController> {
           ),
           _MenuItem(
             icon: Icons.info_outline,
-            label: '关于记乐多',
-            subtitle: 'MoneyLog v1.0.0',
-            onTap: () => showAboutDialog(context: context, applicationName: '记乐多 · MoneyLog', applicationVersion: '1.0.0'),
+            label: '关于智探眼',
+            subtitle: 'v1.0.0',
+            onTap: () => showAboutDialog(context: context, applicationName: '智探眼', applicationVersion: '1.0.0'),
           ),
           const SizedBox(height: 8),
           _SectionHeader(title: '账号'),

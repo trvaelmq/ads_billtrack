@@ -16,11 +16,10 @@ class SplashView extends GetView<SplashController> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(28),
-              child: Image.asset('assets/app_icon_source.png', width: 100, height: 100),
+              child: Image.asset('assets/app_icon.png', width: 100, height: 100),
             ),
             const SizedBox(height: 20),
-            const Text('记乐多', style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
-            const Text('MoneyLog', style: TextStyle(color: Colors.white70, fontSize: 16, letterSpacing: 2)),
+            const Text('智探眼', style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
             const SizedBox(height: 60),
             const CircularProgressIndicator(color: Colors.white60, strokeWidth: 2),
           ],

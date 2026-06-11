@@ -126,6 +126,14 @@ class HomeView extends StatelessWidget {
                     ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _HealthScoreCard(
+                      expense: bill.monthlyExpense.value,
+                      income: bill.monthlyIncome.value,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: _MonthSummaryCard(
                       expense: bill.monthlyExpense.value,
                       income: bill.monthlyIncome.value,
@@ -149,14 +157,6 @@ class HomeView extends StatelessWidget {
                       child: _InsightsCard(insights: insights),
                     ),
                   ],
-                  const SizedBox(height: 14),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _HealthScoreCard(
-                      expense: bill.monthlyExpense.value,
-                      income: bill.monthlyIncome.value,
-                    ),
-                  ),
                   const SizedBox(height: 14),
                   _BillSection(bill: bill, context: context),
                   const SizedBox(height: 80),

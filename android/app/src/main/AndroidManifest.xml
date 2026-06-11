@@ -10,7 +10,7 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
-        android:label="记乐多"
+        android:label="智探眼"
         android:name=".MyApplication"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
@@ -42,7 +42,7 @@
         <!-- GDT FileProvider -->
         <provider
             android:name="com.qq.e.comm.GDTFileProvider"
-            android:authorities="com.example.ads_billtrack.gdt.fileprovider"
+            android:authorities="com.jileduo.finance.gdt.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
