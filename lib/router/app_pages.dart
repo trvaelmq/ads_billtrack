@@ -147,7 +147,7 @@ class AppPages {
       name: Routes.login,
       page: () => const LoginView(),
       binding: BindingsBuilder(() => Get.lazyPut(() => LoginController())),
-      transition: Transition.cupertino,
+      transition: Transition.fadeIn,
       transitionDuration: const Duration(milliseconds: 300),
     ),
     GetPage(

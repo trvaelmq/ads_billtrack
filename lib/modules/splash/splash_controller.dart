@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../core/services/ad_service.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../router/app_pages.dart';
 import 'privacy_dialog.dart';
@@ -38,9 +39,10 @@ class SplashController extends GetxController {
       StorageService.setJoinDate();
       StorageService.setFirstLaunchDone();
     }
-    // 先跳转到首页，overlay 仍盖着，用户看不到开屏页
-    Get.offAllNamed(Routes.main);
-    // 跳转触发后再移除 overlay，首页已在渲染中
+    // 强制登录门禁：已登录进首页，未登录进登录页（登录态由本地 token 恢复）
+    Get.offAllNamed(
+        AuthService.to.isLoggedIn.value ? Routes.main : Routes.login);
+    // 跳转触发后再移除 overlay，目标页已在渲染中
     await AdService.to.dismissSplashAd();
   }
 }

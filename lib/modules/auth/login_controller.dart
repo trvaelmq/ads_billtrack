@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/services/auth_service.dart';
+import '../../router/app_pages.dart';
 
 class LoginController extends GetxController {
   final usernameController = TextEditingController();
@@ -20,7 +21,8 @@ class LoginController extends GetxController {
     final result = await AuthService.to.login(username, password);
     loading.value = false;
     if (result.success) {
-      Get.back();
+      // 登录页为栈底根页，登录成功后进入首页
+      Get.offAllNamed(Routes.main);
       final name = AuthService.to.userInfo.value?.nickname ?? username;
       Get.snackbar('登录成功', '欢迎回来，$name', snackPosition: SnackPosition.BOTTOM);
     } else {

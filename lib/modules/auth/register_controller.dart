@@ -49,11 +49,8 @@ class RegisterController extends GetxController {
     );
     loading.value = false;
     if (result.success) {
-      // 注册并自动登录成功：弹出注册页和登录页，回到来源页
-      Get.until((route) {
-        final name = route.settings.name;
-        return name != Routes.register && name != Routes.login;
-      });
+      // 注册并自动登录成功：直接进入首页（登录页为栈底根页）
+      Get.offAllNamed(Routes.main);
       Get.snackbar('注册成功', '已自动登录', snackPosition: SnackPosition.BOTTOM);
     } else {
       Get.snackbar('注册失败', result.message, snackPosition: SnackPosition.BOTTOM);
