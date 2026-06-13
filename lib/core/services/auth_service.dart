@@ -1,11 +1,12 @@
 import 'package:get/get.dart';
 import '../../data/models/user_info.dart';
+import '../../router/app_pages.dart';
 import '../network/api_client.dart';
 import '../network/api_result.dart';
 import 'storage_service.dart';
 
 /// 认证服务：登录状态、token 持久化、认证接口业务封装。
-/// 登录为可选能力，未登录不影响任何本地功能。
+/// 应用强制登录：进入即需登录，token 失效（401）自动踢回登录页。
 class AuthService extends GetxService {
   static AuthService get to => Get.find();
 
@@ -21,7 +22,7 @@ class AuthService extends GetxService {
   void onInit() {
     super.onInit();
     _api.tokenProvider = () => _token;
-    _api.onUnauthorized = _clearLocal;
+    _api.onUnauthorized = _onUnauthorized;
     _restore();
   }
 
@@ -120,5 +121,14 @@ class AuthService extends GetxService {
     userInfo.value = null;
     isLoggedIn.value = false;
     StorageService.clearAuth();
+  }
+
+  /// token 失效（401）回调：清本地态并踢回登录页（避免在登录/注册页时重复跳转）。
+  void _onUnauthorized() {
+    _clearLocal();
+    final current = Get.currentRoute;
+    if (current != Routes.login && current != Routes.register) {
+      Get.offAllNamed(Routes.login);
+    }
   }
 }
