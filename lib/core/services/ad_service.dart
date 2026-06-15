@@ -10,24 +10,24 @@ class AdService extends GetxService {
   static AdService get to => Get.find();
 
   static const _method = MethodChannel(AdConfig.methodChannel);
-  static const _event  = EventChannel(AdConfig.eventChannel);
+  static const _event = EventChannel(AdConfig.eventChannel);
 
-  final RxBool isRewardedReady   = false.obs;
-  final RxInt  todayWatchCount   = 0.obs;   // 仅统计激励视频次数
-  final RxInt  totalCoins        = 0.obs;
+  final RxBool isRewardedReady = false.obs;
+  final RxInt todayWatchCount = 0.obs; // 仅统计激励视频次数
+  final RxInt totalCoins = 0.obs;
   final RxBool showCoinAnimation = false.obs;
-  final RxInt  lastEarnedCoins   = 0.obs;
-  final RxInt  cooldownRemaining = 0.obs;
+  final RxInt lastEarnedCoins = 0.obs;
+  final RxInt cooldownRemaining = 0.obs;
   Timer? _cooldownTimer;
   Timer? _preRewardedTimer;
   Timer? _postInterstitialTimer;
 
   // 流程阶段标记
-  bool _interstitialIsPreRewarded  = false; // 插屏是激励前置？关闭后弹激励
-  bool _interstitialIsPostHistory  = false; // 插屏是历史页后置？关闭后才返回
-  bool _pendingHistoryBack         = false; // 激励结束后跳历史，返回时弹插屏
-  bool historyBackLocked           = false; // 历史页返回锁，锁住期间忽略所有返回
-  bool _rewardedFlowInProgress     = false; // 激励流程进行中，忽略重复点击
+  bool _interstitialIsPreRewarded = false; // 插屏是激励前置？关闭后弹激励
+  bool _interstitialIsPostHistory = false; // 插屏是历史页后置？关闭后才返回
+  bool _pendingHistoryBack = false; // 激励结束后跳历史，返回时弹插屏
+  bool historyBackLocked = false; // 历史页返回锁，锁住期间忽略所有返回
+  bool _rewardedFlowInProgress = false; // 激励流程进行中，忽略重复点击
 
   final _splashDone = Completer<void>();
   Future<void> get splashDone => _splashDone.future;
@@ -36,47 +36,90 @@ class AdService extends GetxService {
   void onInit() {
     super.onInit();
     debugPrint('[AdService] onInit');
-    totalCoins.value    = StorageService.totalCoins;
+    totalCoins.value = StorageService.totalCoins;
     todayWatchCount.value = StorageService.todayAdRecords.length;
     _event.receiveBroadcastStream().listen(_onAdEvent);
     loadRewardedAd();
   }
 
   Future<void> initAdSdk() async {
-    try { await _method.invokeMethod('initAdSdk'); } catch (e) { debugPrint('[AdService] initAdSdk error: $e'); }
+    try {
+      await _method.invokeMethod('initAdSdk');
+    } catch (e) {
+      debugPrint('[AdService] initAdSdk error: $e');
+    }
   }
 
   Future<void> showSplashAd() async {
-    try { await _method.invokeMethod('showSplashAd', {'posId': AdConfig.splashPosId, 'appId': AdConfig.appId}); } catch (e) { debugPrint('[AdService] showSplashAd error: $e'); }
+    try {
+      await _method.invokeMethod('showSplashAd', {
+        'posId': AdConfig.splashPosId,
+        'appId': AdConfig.appId,
+      });
+    } catch (e) {
+      debugPrint('[AdService] showSplashAd error: $e');
+    }
   }
 
   Future<void> dismissSplashAd() async {
-    try { await _method.invokeMethod('dismissSplashAd'); } catch (e) { debugPrint('[AdService] dismissSplashAd error: $e'); }
+    try {
+      await _method.invokeMethod('dismissSplashAd');
+    } catch (e) {
+      debugPrint('[AdService] dismissSplashAd error: $e');
+    }
   }
 
   Future<void> loadRewardedAd() async {
     isRewardedReady.value = false;
-    try { await _method.invokeMethod('loadRewardedAd', {'posId': AdConfig.rewardedPosId, 'appId': AdConfig.appId}); } catch (e) { debugPrint('[AdService] loadRewardedAd error: $e'); }
+    try {
+      await _method.invokeMethod('loadRewardedAd', {
+        'posId': AdConfig.rewardedPosId,
+        'appId': AdConfig.appId,
+      });
+    } catch (e) {
+      debugPrint('[AdService] loadRewardedAd error: $e');
+    }
   }
 
   Future<void> showRewardedAd() async {
-    try { await _method.invokeMethod('showRewardedAd'); } catch (e) { debugPrint('[AdService] showRewardedAd error: $e'); }
+    try {
+      await _method.invokeMethod('showRewardedAd');
+    } catch (e) {
+      debugPrint('[AdService] showRewardedAd error: $e');
+    }
   }
 
   Future<void> showInterstitialAd() async {
-    try { await _method.invokeMethod('showInterstitialAd', {'posId': AdConfig.interstitialPosId, 'appId': AdConfig.appId}); } catch (e) { debugPrint('[AdService] showInterstitialAd error: $e'); }
+    try {
+      await _method.invokeMethod('showInterstitialAd', {
+        'posId': AdConfig.interstitialPosId,
+        'appId': AdConfig.appId,
+      });
+    } catch (e) {
+      debugPrint('[AdService] showInterstitialAd error: $e');
+    }
   }
 
   Future<void> showFullScreenInterstitialAd() async {
-    try { await _method.invokeMethod('showFullScreenInterstitialAd', {'posId': AdConfig.interstitialPosId, 'appId': AdConfig.appId}); } catch (e) { debugPrint('[AdService] showFullScreenInterstitialAd error: $e'); }
+    try {
+      await _method.invokeMethod('showFullScreenInterstitialAd', {
+        'posId': AdConfig.interstitialPosId,
+        'appId': AdConfig.appId,
+      });
+    } catch (e) {
+      debugPrint('[AdService] showFullScreenInterstitialAd error: $e');
+    }
   }
 
-  /// 点击"看激励视频"时调用：延迟3秒弹插屏，插屏关闭后再延迟3秒弹激励
+  /// 随机 3~5 秒延迟，用于流程各节点之间的间隔
+  Duration _randomDelay() => Duration(seconds: 3 + Random().nextInt(3));
+
+  /// 点击"看激励视频"时调用：延迟3~5秒弹插屏，插屏关闭后再延迟3~5秒弹激励
   void startRewardedAdFlow() {
     if (_rewardedFlowInProgress) return; // 流程进行中，忽略重复点击
     _rewardedFlowInProgress = true;
     _interstitialIsPreRewarded = true;
-    _preRewardedTimer = Timer(const Duration(seconds: 3), showInterstitialAd);
+    _preRewardedTimer = Timer(_randomDelay(), showInterstitialAd);
   }
 
   void _endRewardedFlow() {
@@ -93,15 +136,16 @@ class AdService extends GetxService {
     return val;
   }
 
-  /// 历史页确认要弹后置插屏（弹完才返回）
+  /// 历史页确认要弹后置插屏（延迟3~5秒后弹，弹完才返回）
   void showInterstitialForHistoryBack() {
     _interstitialIsPostHistory = true;
-    showInterstitialAd();
+    _postInterstitialTimer?.cancel();
+    _postInterstitialTimer = Timer(_randomDelay(), showInterstitialAd);
   }
 
   void _onAdEvent(dynamic data) {
     if (data is! Map) return;
-    final type  = data['type']  as String? ?? '';
+    final type = data['type'] as String? ?? '';
     final event = data['event'] as String? ?? '';
     debugPrint('[AdService] event: $type.$event');
 
@@ -139,7 +183,7 @@ class AdService extends GetxService {
         if (_interstitialIsPreRewarded) {
           _interstitialIsPreRewarded = false;
           _postInterstitialTimer?.cancel();
-          _postInterstitialTimer = Timer(const Duration(seconds: 3), showRewardedAd);
+          _postInterstitialTimer = Timer(_randomDelay(), showRewardedAd);
         } else if (_interstitialIsPostHistory) {
           _interstitialIsPostHistory = false;
           historyBackLocked = false;
@@ -152,7 +196,7 @@ class AdService extends GetxService {
         if (_interstitialIsPreRewarded) {
           _interstitialIsPreRewarded = false;
           if (isRewardedReady.value) {
-            _postInterstitialTimer = Timer(const Duration(seconds: 3), showRewardedAd);
+            _postInterstitialTimer = Timer(_randomDelay(), showRewardedAd);
           } else {
             _endRewardedFlow(); // 插屏失败且激励不可用，流程结束
           }
@@ -168,7 +212,7 @@ class AdService extends GetxService {
   Future<void> _recordRewarded() async {
     await StorageService.saveAdRecord('rewarded', AdConfig.rewardCoins);
     await StorageService.addCoins(AdConfig.rewardCoins);
-    totalCoins.value      = StorageService.totalCoins;
+    totalCoins.value = StorageService.totalCoins;
     todayWatchCount.value = StorageService.todayAdRecords.length;
     lastEarnedCoins.value = AdConfig.rewardCoins;
     showCoinAnimation.value = true;
