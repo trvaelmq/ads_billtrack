@@ -52,7 +52,7 @@ class HistoryView extends GetView<HistoryController> {
             onPressed: _handleBack,
           ),
           title: const Text(
-            '签到记录',
+            '统计历史',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
           ),
         ),
