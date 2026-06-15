@@ -42,11 +42,9 @@ class ProfileView extends GetView<ProfileController> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: GestureDetector(
-                    onTap: (){
-                      if (!StorageService.isProfileSet) {
-                        Get.toNamed(Routes.onboarding);
-                      }else{
-                        // controller.editNickname();
+                    onTap: () {
+                      if (!AuthService.to.isLoggedIn.value) {
+                        Get.toNamed(Routes.login);
                       }
                     },
                     child: Column(
@@ -107,13 +105,7 @@ class ProfileView extends GetView<ProfileController> {
           const SizedBox(height: 8),
           _SectionHeader(title: '财务工具'),
           _MenuItem(icon: Icons.bar_chart, label: '统计分析', subtitle: '查看收支分布和月度趋势',
-              onTap: () {
-                if (!StorageService.isProfileSet) {
-                  Get.toNamed(Routes.onboarding);
-                }else{
-                  Get.toNamed(Routes.stats);
-                }
-              }),
+              onTap: () => Get.toNamed(Routes.stats)),
           _MenuItem(icon: Icons.account_balance_wallet, label: '预算管理', subtitle: '设置各类别月度预算',
               onTap: () => Get.toNamed(Routes.budget)),
           _MenuItem(icon: Icons.account_balance, label: '资产账户', subtitle: '管理账户余额，记账自动增减',
