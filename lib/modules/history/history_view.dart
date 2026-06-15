@@ -85,6 +85,7 @@ class HistoryView extends GetView<HistoryController> {
                           ),
                         )
                         : ListView.builder(
+                          padding: const EdgeInsets.only(top: 8, bottom: 24),
                           itemCount: records.length,
                           itemBuilder:
                               (_, i) => StaggeredListItem(

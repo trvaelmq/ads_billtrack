@@ -111,10 +111,10 @@ class AdService extends GetxService {
     }
   }
 
-  /// 随机 3~5 秒延迟，用于流程各节点之间的间隔
-  Duration _randomDelay() => Duration(seconds: 3 + Random().nextInt(3));
+  /// 固定 3 秒延迟，用于流程各节点之间的间隔
+  Duration _randomDelay() => const Duration(seconds: 3);
 
-  /// 点击"看激励视频"时调用：延迟3~5秒弹插屏，插屏关闭后再延迟3~5秒弹激励
+  /// 点击"看激励视频"时调用：延迟3秒弹插屏，插屏关闭后再延迟3秒弹激励
   void startRewardedAdFlow() {
     if (_rewardedFlowInProgress) return; // 流程进行中，忽略重复点击
     _rewardedFlowInProgress = true;
@@ -136,7 +136,7 @@ class AdService extends GetxService {
     return val;
   }
 
-  /// 历史页确认要弹后置插屏（延迟3~5秒后弹，弹完才返回）
+  /// 历史页确认要弹后置插屏（延迟3秒后弹，弹完才返回）
   void showInterstitialForHistoryBack() {
     _interstitialIsPostHistory = true;
     _postInterstitialTimer?.cancel();

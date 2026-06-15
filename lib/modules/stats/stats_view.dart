@@ -48,9 +48,28 @@ class StatsView extends GetView<StatsController> {
         final expByCat = bill.expenseByCategory;
         final last6 = bill.last6MonthsStats;
         return Container(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           child: Column(
             children: [
+              Align(
+                alignment: Alignment.centerRight,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => Get.toNamed('/history'),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                    child: Text(
+                      '统计记录',
+                      style: TextStyle(
+                        color: Color(0xFFD2911E),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
