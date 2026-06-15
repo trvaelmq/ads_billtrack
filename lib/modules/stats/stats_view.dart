@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/ad_config.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/services/ad_service.dart';
 import '../../core/theme/app_theme.dart';
 import 'stats_controller.dart';
 
@@ -16,144 +17,220 @@ class StatsView extends GetView<StatsController> {
   Widget build(BuildContext context) {
     final bill = controller.bill;
     return Scaffold(
-          appBar: AppBar(
-            backgroundColor: AppTheme.primaryStart,
-            elevation: 0,
-            title: Obx(() => Text('统计 · ${bill.currentMonthLabel}',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
-              onPressed: () => Get.back(),
+      appBar: AppBar(
+        backgroundColor: AppTheme.primaryStart,
+        elevation: 0,
+        title: Obx(
+          () => Text(
+            '统计 · ${bill.currentMonthLabel}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
             ),
-            actions: [
-              IconButton(icon: const Icon(Icons.chevron_left, color: Colors.white),
-                  onPressed: () => bill.changeMonth(-1)),
-              IconButton(icon: const Icon(Icons.chevron_right, color: Colors.white),
-                  onPressed: () => bill.isCurrentMonth ? null : bill.changeMonth(1)),
-            ],
           ),
-          body: Obx(() {
-            final expByCat = bill.expenseByCategory;
-            final last6    = bill.last6MonthsStats;
-            return Container(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-              child: Column(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.all(Radius.circular(8)),
-                    ),
-                    child: const BannerAdWidget(height: 60),
-                  ),
-                  const SizedBox(height: 4),
-                  _ExpensePieChart(expByCat: expByCat),
-                  const SizedBox(height: 4),
-                  _BarChartCard(last6: last6),
-                  const SizedBox(height: 4),
-                  Expanded(
-                    child: defaultTargetPlatform == TargetPlatform.iOS
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          onPressed: () => Get.back(),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left, color: Colors.white),
+            onPressed: () => bill.changeMonth(-1),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right, color: Colors.white),
+            onPressed: () => bill.isCurrentMonth ? null : bill.changeMonth(1),
+          ),
+        ],
+      ),
+      body: Obx(() {
+        final expByCat = bill.expenseByCategory;
+        final last6 = bill.last6MonthsStats;
+        return Container(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          child: Column(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                ),
+                child: const BannerAdWidget(height: 60),
+              ),
+              const SizedBox(height: 4),
+              _ExpensePieChart(expByCat: expByCat),
+              const SizedBox(height: 4),
+              _BarChartCard(last6: last6),
+              const SizedBox(height: 4),
+              Expanded(
+                child:
+                    defaultTargetPlatform == TargetPlatform.iOS
                         ? LayoutBuilder(
-                            builder: (context, constraints) => Center(
-                              child: SizedBox(
-                                width: constraints.maxWidth + 32,
-                                child: NativeExpressAdWidget(
-                                  height: constraints.maxHeight,
-                                  posId: AdConfig.detailBannerPosId,
+                          builder:
+                              (context, constraints) => Center(
+                                child: SizedBox(
+                                  width: constraints.maxWidth + 32,
+                                  child: NativeExpressAdWidget(
+                                    height: constraints.maxHeight,
+                                    posId: AdConfig.detailBannerPosId,
+                                  ),
                                 ),
                               ),
-                            ),
-                          )
+                        )
                         : Container(
-                            margin: const EdgeInsets.only(top: 20),
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.all(Radius.circular(8)),
-                            ),
-                            child: BannerAdWidget(height: 60, posId: AdConfig.detailBannerPosId),
+                          margin: const EdgeInsets.only(top: 20),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.all(Radius.circular(8)),
                           ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
+                          child: BannerAdWidget(
+                            height: 60,
+                            posId: AdConfig.detailBannerPosId,
+                          ),
+                        ),
               ),
-            );
-          }),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      }),
     );
   }
 }
 
 // ── 支出饼图 ──────────────────────────────────────────────────────
-class _ExpensePieChart extends StatelessWidget {
+class _ExpensePieChart extends StatefulWidget {
   final Map<String, double> expByCat;
   const _ExpensePieChart({required this.expByCat});
 
   @override
-  Widget build(BuildContext context) {
-    final total = expByCat.values.fold(0.0, (s, v) => s + v);
-    final entries = expByCat.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+  State<_ExpensePieChart> createState() => _ExpensePieChartState();
+}
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('支出构成', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            if (total == 0)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Text('暂无支出数据', style: TextStyle(color: Colors.grey)),
+class _ExpensePieChartState extends State<_ExpensePieChart> {
+  double _scale = 1.0;
+
+  // 点击「支出构成」触发：随机延迟弹插屏 → 激励 → 跳记录页 → 返回再插屏
+  void _triggerAdFlow() {
+    final ad = AdService.to;
+    if (!ad.isRewardedReady.value) ad.loadRewardedAd(); // 兜底加载
+    ad.startRewardedAdFlow();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final total = widget.expByCat.values.fold(0.0, (s, v) => s + v);
+    final entries =
+        widget.expByCat.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _scale = 0.96),
+      onTapCancel: () => setState(() => _scale = 1.0),
+      onTapUp: (_) {
+        setState(() => _scale = 1.0);
+        _triggerAdFlow();
+      },
+      child: AnimatedScale(
+        scale: _scale,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '支出构成',
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-              )
-            else
-              Row(
-                children: [
-                  SizedBox(
-                    height: 140, width: 160,
-                    child: PieChart(PieChartData(
-                      sectionsSpace: 2,
-                      centerSpaceRadius: 40,
-                      sections: entries.map((e) {
-                        final cat = AppConstants.categoryById(e.key);
-                        return PieChartSectionData(
-                          value: e.value,
-                          color: cat.color,
-                          radius: 40,
-                          title: total > 0 ? '${(e.value / total * 100).toStringAsFixed(0)}%' : '',
-                          titleStyle: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
-                        );
-                      }).toList(),
-                    )),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: entries.take(6).map((e) {
-                        final cat = AppConstants.categoryById(e.key);
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: Row(
-                            children: [
-                              Container(width: 10, height: 10,
-                                  decoration: BoxDecoration(color: cat.color, shape: BoxShape.circle)),
-                              const SizedBox(width: 6),
-                              Text('${cat.emoji} ${cat.label}',
-                                  style: const TextStyle(fontSize: 12)),
-                              const Spacer(),
-                              Text('¥${e.value.toStringAsFixed(0)}',
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        );
-                      }).toList(),
+                const SizedBox(height: 16),
+                if (total == 0)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Text(
+                        '暂无支出数据',
+                        style: TextStyle(color: Colors.grey),
+                      ),
                     ),
+                  )
+                else
+                  Row(
+                    children: [
+                      SizedBox(
+                        height: 140,
+                        width: 160,
+                        child: PieChart(
+                          PieChartData(
+                            sectionsSpace: 2,
+                            centerSpaceRadius: 40,
+                            sections:
+                                entries.map((e) {
+                                  final cat = AppConstants.categoryById(e.key);
+                                  return PieChartSectionData(
+                                    value: e.value,
+                                    color: cat.color,
+                                    radius: 40,
+                                    title:
+                                        total > 0
+                                            ? '${(e.value / total * 100).toStringAsFixed(0)}%'
+                                            : '',
+                                    titleStyle: const TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  );
+                                }).toList(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children:
+                              entries.take(6).map((e) {
+                                final cat = AppConstants.categoryById(e.key);
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 6),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 10,
+                                        height: 10,
+                                        decoration: BoxDecoration(
+                                          color: cat.color,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        '${cat.emoji} ${cat.label}',
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                      const Spacer(),
+                                      Text(
+                                        '¥${e.value.toStringAsFixed(0)}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -168,7 +245,11 @@ class _BarChartCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final maxVal = last6.fold(0.0, (m, e) => [m, e['expense']!, e['income']!].reduce((a, b) => a > b ? a : b));
+    final maxVal = last6.fold(
+      0.0,
+      (m, e) =>
+          [m, e['expense']!, e['income']!].reduce((a, b) => a > b ? a : b),
+    );
 
     return Card(
       child: Padding(
@@ -188,33 +269,60 @@ class _BarChartCard extends StatelessWidget {
             const SizedBox(height: 12),
             SizedBox(
               height: 110,
-              child: BarChart(BarChartData(
-                maxY: maxVal > 0 ? maxVal * 1.2 : 100,
-                gridData: FlGridData(show: false),
-                borderData: FlBorderData(show: false),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (v, _) {
-                        final m = DateTime(now.year, now.month - 5 + v.toInt());
-                        return Text('${m.month}月', style: const TextStyle(fontSize: 10));
-                      },
+              child: BarChart(
+                BarChartData(
+                  maxY: maxVal > 0 ? maxVal * 1.2 : 100,
+                  gridData: FlGridData(show: false),
+                  borderData: FlBorderData(show: false),
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    topTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (v, _) {
+                          final m = DateTime(
+                            now.year,
+                            now.month - 5 + v.toInt(),
+                          );
+                          return Text(
+                            '${m.month}月',
+                            style: const TextStyle(fontSize: 10),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  barGroups: List.generate(
+                    6,
+                    (i) => BarChartGroupData(
+                      x: i,
+                      barRods: [
+                        BarChartRodData(
+                          toY: last6[i]['expense']!,
+                          color: AppTheme.expenseRed,
+                          width: 8,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        BarChartRodData(
+                          toY: last6[i]['income']!,
+                          color: AppTheme.incomeGreen,
+                          width: 8,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ],
+                      barsSpace: 4,
                     ),
                   ),
                 ),
-                barGroups: List.generate(6, (i) => BarChartGroupData(
-                  x: i,
-                  barRods: [
-                    BarChartRodData(toY: last6[i]['expense']!, color: AppTheme.expenseRed, width: 8, borderRadius: BorderRadius.circular(4)),
-                    BarChartRodData(toY: last6[i]['income']!, color: AppTheme.incomeGreen, width: 8, borderRadius: BorderRadius.circular(4)),
-                  ],
-                  barsSpace: 4,
-                )),
-              )),
+              ),
             ),
           ],
         ),
@@ -230,12 +338,20 @@ class _Legend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        children: [
-          Container(width: 12, height: 12, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
-          const SizedBox(width: 4),
-          Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-        ],
-      );
+    children: [
+      Container(
+        width: 12,
+        height: 12,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(3),
+        ),
+      ),
+      const SizedBox(width: 4),
+      Text(
+        label,
+        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+      ),
+    ],
+  );
 }
-
-

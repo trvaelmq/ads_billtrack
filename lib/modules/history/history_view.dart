@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import '../../core/services/ad_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/ad_record.dart';
@@ -18,86 +19,156 @@ class HistoryView extends GetView<HistoryController> {
     '又多看了一个广告，不错👍',
   ];
 
+  // 返回时：从激励流程进来的，先延迟弹后置插屏，插屏关闭后才真正返回
+  void _handleBack() {
+    final ad = AdService.to;
+    if (ad.historyBackLocked) return; // 插屏弹出中/已在返回流程，忽略重复返回
+    if (ad.consumeHistoryBackInterstitial()) {
+      ad.showInterstitialForHistoryBack(); // 关闭后由 AdService 执行 Get.back()
+    } else {
+      Get.back();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text('签到记录',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleBack();
+      },
+      child: Scaffold(
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios,
+              color: Colors.white,
+              size: 20,
+            ),
+            onPressed: _handleBack,
+          ),
+          title: const Text(
+            '统计历史',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          ),
+        ),
+        body: Obx(() {
+          final records = controller.records;
+          return Column(
+            children: [
+              Container(
+                height: MediaQuery.of(context).padding.top + 56,
+                decoration: const BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                ),
+              ),
+              _UserCard(recordCount: records.length),
+              const Divider(height: 1),
+              Expanded(
+                child:
+                    records.isEmpty
+                        ? const Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('📺', style: TextStyle(fontSize: 60)),
+                              SizedBox(height: 12),
+                              Text(
+                                '还没有广告记录',
+                                style: TextStyle(color: AppTheme.textSecondary),
+                              ),
+                            ],
+                          ),
+                        )
+                        : ListView.builder(
+                          itemCount: records.length,
+                          itemBuilder:
+                              (_, i) => StaggeredListItem(
+                                index: i,
+                                child: _RecordItem(
+                                  record: records[i],
+                                  onTap: () => _showDetail(context, records[i]),
+                                ),
+                              ),
+                        ),
+              ),
+            ],
+          );
+        }),
       ),
-      body: Obx(() {
-        final records = controller.records;
-        return Column(children: [
-          Container(
-            height: MediaQuery.of(context).padding.top + 56,
-            decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
-          ),
-          _UserCard(recordCount: records.length),
-          const Divider(height: 1),
-          Expanded(
-            child: records.isEmpty
-                ? const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Text('📺', style: TextStyle(fontSize: 60)),
-                    SizedBox(height: 12),
-                    Text('还没有广告记录', style: TextStyle(color: AppTheme.textSecondary)),
-                  ]))
-                : ListView.builder(
-                    itemCount: records.length,
-                    itemBuilder: (_, i) => StaggeredListItem(
-                      index: i,
-                      child: _RecordItem(
-                        record: records[i],
-                        onTap: () => _showDetail(context, records[i]),
-                      ),
-                    ),
-                  ),
-          ),
-        ]);
-      }),
     );
   }
 
   void _showDetail(BuildContext context, AdRecord r) {
-    final msg = _encouragements[r.watchedAt.millisecond % _encouragements.length];
+    final msg =
+        _encouragements[r.watchedAt.millisecond % _encouragements.length];
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => Container(
-        width: context.width,
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(width: 40, height: 4,
-                decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 24),
-            Text(r.adTypeEmoji, style: const TextStyle(fontSize: 60)),
-            const SizedBox(height: 12),
-            Text(r.adTypeLabel,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(DateFormat('yyyy-MM-dd HH:mm:ss').format(r.watchedAt),
-                style: const TextStyle(color: Colors.grey, fontSize: 13)),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppTheme.coinGold.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text('+${r.coinsEarned}🪙',
-                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.coinGold)),
-            ),
-            const SizedBox(height: 16),
-            Text(msg, style: const TextStyle(color: AppTheme.textSecondary)),
-            const SizedBox(height: 16),
-          ],
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder:
+          (_) => Container(
+            width: context.width,
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(r.adTypeEmoji, style: const TextStyle(fontSize: 60)),
+                const SizedBox(height: 12),
+                Text(
+                  r.adTypeLabel,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  DateFormat('yyyy-MM-dd HH:mm:ss').format(r.watchedAt),
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.coinGold.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '+${r.coinsEarned}🪙',
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.coinGold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  msg,
+                  style: const TextStyle(color: AppTheme.textSecondary),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
     );
   }
 }
@@ -126,12 +197,19 @@ class _UserCard extends StatelessWidget {
           Column(
             children: [
               Container(
-                width: 56, height: 56,
+                width: 56,
+                height: 56,
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.25),
                   shape: BoxShape.circle,
                 ),
-                child: ClipOval(child: Image.asset('assets/app_icon.png', width: 56, height: 56)),
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/app_icon.png',
+                    width: 56,
+                    height: 56,
+                  ),
+                ),
               ),
               const SizedBox(height: 6),
               Container(
@@ -140,7 +218,10 @@ class _UserCard extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Text('智探眼', style: TextStyle(color: Colors.white, fontSize: 12)),
+                child: const Text(
+                  '智探眼',
+                  style: TextStyle(color: Colors.white, fontSize: 12),
+                ),
               ),
             ],
           ),
@@ -149,20 +230,37 @@ class _UserCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('ID: ${StorageService.userId}',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+              Text(
+                'ID: ${StorageService.userId}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text(StorageService.nickname,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13)),
+              Text(
+                StorageService.nickname,
+                style: const TextStyle(color: Colors.white70, fontSize: 13),
+              ),
               const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text('记录: $recordCount',
-                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                child: Text(
+                  '记录: $recordCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
           ),
@@ -179,28 +277,36 @@ class _RecordItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Row(
-            children: [
-              Text(record.adTypeEmoji, style: const TextStyle(fontSize: 28)),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Text(record.adTypeLabel,
-                    //     style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                    Text(DateFormat('yyyy-MM-dd HH:mm:ss').format(record.watchedAt),
-                        style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                  ],
+    onTap: onTap,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          Text(record.adTypeEmoji, style: const TextStyle(fontSize: 28)),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Text(record.adTypeLabel,
+                //     style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                Text(
+                  DateFormat('yyyy-MM-dd HH:mm:ss').format(record.watchedAt),
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
-              ),
-              Text('+${record.coinsEarned}🪙',
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.coinGold, fontSize: 15)),
-            ],
+              ],
+            ),
           ),
-        ),
-      );
+          Text(
+            '+${record.coinsEarned}🪙',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppTheme.coinGold,
+              fontSize: 15,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
