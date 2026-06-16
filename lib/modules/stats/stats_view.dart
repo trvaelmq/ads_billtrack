@@ -1,6 +1,7 @@
 import 'package:ads_billtrack/widgets/banner_ad_widget.dart';
 import 'package:ads_billtrack/widgets/native_express_ad_widget.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -133,8 +134,45 @@ class _ExpensePieChartState extends State<_ExpensePieChart> {
   // 点击「支出构成」触发：随机延迟弹插屏 → 激励 → 跳记录页 → 返回再插屏
   void _triggerAdFlow() {
     final ad = AdService.to;
+    // 冷却中：提示剩余时间，不进入广告流程（看完一个需冷却才能看下一个）
+    if (ad.cooldownRemaining.value > 0) {
+      _showCooldownDialog(ad);
+      return;
+    }
     if (!ad.isRewardedReady.value) ad.loadRewardedAd(); // 兜底加载
     ad.startRewardedAdFlow();
+  }
+
+  void _showCooldownDialog(AdService ad) {
+    Get.dialog(
+      CupertinoAlertDialog(
+        title: const Text('提示'),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 6),
+          // 实时绑定冷却秒数：每秒递减跳动，归零后自动关闭
+          child: Obx(() {
+            final seconds = ad.cooldownRemaining.value;
+            if (seconds <= 0) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (Get.isDialogOpen ?? false) Get.back();
+              });
+              return const Text('冷却结束，可继续观看');
+            }
+            final m = seconds ~/ 60;
+            final s = seconds % 60;
+            final timeText =
+                m > 0 ? '$m分${s.toString().padLeft(2, '0')}秒' : '$s秒';
+            return Text('请等待 $timeText 后再试');
+          }),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Get.back(),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
