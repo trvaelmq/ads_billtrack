@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_constants.dart';
-import '../../core/services/ad_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/bill_service.dart';
 import '../../core/services/recurring_service.dart';
@@ -13,7 +12,6 @@ import '../../data/models/bill_record.dart';
 import '../../data/models/recurring_rule.dart';
 import '../../router/app_pages.dart';
 import '../../widgets/animated_counter.dart';
-import '../../widgets/coin_float_animation.dart';
 import '../health_score/health_score_view.dart';
 
 class HomeView extends StatelessWidget {
@@ -22,11 +20,9 @@ class HomeView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bill = BillService.to;
-    final ad = AdService.to;
     final statusBarH = MediaQuery.of(context).padding.top;
 
-    return Stack(children: [
-      Scaffold(
+    return Scaffold(
         extendBodyBehindAppBar: true,
         floatingActionButton: FloatingActionButton(
           onPressed: () => Get.toNamed(Routes.addBill),
@@ -42,18 +38,6 @@ class HomeView extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                   fontSize: 17))),
           actions: [
-            Obx(() => Padding(
-                  padding: const EdgeInsets.only(right: 4),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    const Text('🪙', style: TextStyle(fontSize: 15)),
-                    const SizedBox(width: 3),
-                    Text('${ad.totalCoins.value}',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14)),
-                  ]),
-                )),
             IconButton(
               icon: const Icon(Icons.chevron_left,
                   color: Colors.white, size: 22),
@@ -165,11 +149,7 @@ class HomeView extends StatelessWidget {
             ),
           ]);
         }),
-      ),
-      Obx(() => ad.showCoinAnimation.value
-          ? CoinFloatAnimation(coins: ad.lastEarnedCoins.value)
-          : const SizedBox.shrink()),
-    ]);
+    );
   }
 }
 

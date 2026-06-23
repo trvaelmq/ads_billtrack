@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/services/account_service.dart';
-import '../../core/services/ad_service.dart';
 import '../../core/services/bill_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../router/app_pages.dart';
@@ -16,7 +15,6 @@ class ProfileView extends GetView<ProfileController> {
 
   @override
   Widget build(BuildContext context) {
-    final ad = AdService.to;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppTheme.primaryStart,
@@ -85,14 +83,6 @@ class ProfileView extends GetView<ProfileController> {
                     ),
                   ),
                 ),
-                Obx(() => Column(
-                      children: [
-                        const Text('🪙', style: TextStyle(fontSize: 24)),
-                        Text('${ad.totalCoins.value}',
-                            style: const TextStyle(color: AppTheme.coinGold, fontWeight: FontWeight.bold, fontSize: 16)),
-                        const Text('金币', style: TextStyle(color: Colors.white70, fontSize: 11)),
-                      ],
-                    )),
               ],
             ),
           ),
@@ -117,8 +107,6 @@ class ProfileView extends GetView<ProfileController> {
           ),
           _MenuItem(icon: Icons.people, label: 'AA 分摊计算器', subtitle: '快速计算多人分摊金额',
               onTap: () => Get.toNamed(Routes.split)),
-          _MenuItem(icon: Icons.calendar_today, label: '每日签到', subtitle: '签到赚金币，7天连签额外奖励',
-              onTap: () => Get.toNamed(Routes.dailyCheckin)),
           _MenuItem(
             icon: Icons.category_outlined,
             label: '我的分类',
@@ -268,7 +256,7 @@ class ProfileView extends GetView<ProfileController> {
   Future<void> _confirmDeleteAccount() async {
     final first = await Get.dialog<bool>(AlertDialog(
       title: const Text('注销账号'),
-      content: const Text('将永久删除所有账单、账户、预算、金币等本地数据，且无法恢复。确定继续？'),
+      content: const Text('将永久删除所有账单、账户、预算等本地数据，且无法恢复。确定继续？'),
       actions: [
         TextButton(onPressed: () => Get.back(result: false), child: const Text('取消')),
         TextButton(onPressed: () => Get.back(result: true),
@@ -293,7 +281,6 @@ class ProfileView extends GetView<ProfileController> {
     // 清空常驻 Service 的内存缓存，避免注销后仍显示旧数据
     AccountService.to.loadAccounts();
     BillService.to.loadBills();
-    AdService.to.refreshCoins();
     Get.offAllNamed(Routes.splash);
   }
 }

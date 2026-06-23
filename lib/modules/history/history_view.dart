@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../core/services/ad_service.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/ad_record.dart';
@@ -14,7 +15,7 @@ class HistoryView extends GetView<HistoryController> {
   static const _encouragements = [
     '太棒了！坚持就是胜利🏆',
     '记账达人，继续加油💪',
-    '金币越来越多了🪙',
+    '记录越来越多了📒',
     '积少成多，财富积累中📈',
     '又多看了一个广告，不错👍',
   ];
@@ -142,25 +143,6 @@ class HistoryView extends GetView<HistoryController> {
                   DateFormat('yyyy-MM-dd HH:mm:ss').format(r.watchedAt),
                   style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.coinGold.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '+${r.coinsEarned}🪙',
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.coinGold,
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 16),
                 Text(
                   msg,
@@ -178,6 +160,15 @@ class HistoryView extends GetView<HistoryController> {
 class _UserCard extends StatelessWidget {
   final int recordCount;
   const _UserCard({required this.recordCount});
+
+  // 登录用户名称：优先昵称，其次用户名，都没有才回退「用户」
+  String get _displayName {
+    final user = AuthService.to.userInfo.value;
+    if (user == null) return '用户';
+    if (user.nickname.isNotEmpty) return user.nickname;
+    if (user.username.isNotEmpty) return user.username;
+    return '用户';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -241,7 +232,7 @@ class _UserCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                StorageService.nickname,
+                _displayName,
                 style: const TextStyle(color: Colors.white70, fontSize: 13),
               ),
               const SizedBox(height: 8),
@@ -296,14 +287,6 @@ class _RecordItem extends StatelessWidget {
                   style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               ],
-            ),
-          ),
-          Text(
-            '+${record.coinsEarned}🪙',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: AppTheme.coinGold,
-              fontSize: 15,
             ),
           ),
         ],

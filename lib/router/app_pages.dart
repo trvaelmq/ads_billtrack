@@ -15,8 +15,6 @@ import '../modules/split/split_view.dart';
 import '../modules/split/split_history_view.dart';
 import '../modules/history/history_view.dart';
 import '../modules/history/history_binding.dart';
-import '../modules/daily_checkin/daily_checkin_view.dart';
-import '../modules/daily_checkin/daily_checkin_binding.dart';
 import '../modules/budget_detail/budget_detail_view.dart';
 import '../modules/budget_detail/budget_detail_controller.dart';
 import '../modules/calendar/calendar_view.dart';
@@ -47,7 +45,6 @@ abstract class Routes {
   static const split         = '/split';
   static const splitHistory  = '/split/history';
   static const history       = '/history';
-  static const dailyCheckin  = '/daily-checkin';
   static const budgetDetail  = '/budget-detail';
   static const calendar      = '/calendar';
   static const dayDetail     = '/calendar/day';
@@ -74,7 +71,6 @@ class AppPages {
     GetPage(name: Routes.split,        page: () => const SplitView()),
     GetPage(name: Routes.splitHistory, page: () => const SplitHistoryView()),
     GetPage(name: Routes.history,      page: () => const HistoryView(),      binding: HistoryBinding()),
-    GetPage(name: Routes.dailyCheckin, page: () => const DailyCheckinView(), binding: DailyCheckinBinding()),
     GetPage(
       name: Routes.budgetDetail,
       page: () => const BudgetDetailView(),

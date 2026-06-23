@@ -13,6 +13,5 @@ class HistoryController extends GetxController {
 
   void loadRecords() => records.value = StorageService.adRecords;
 
-  int get totalCoins => records.fold(0, (s, r) => s + r.coinsEarned);
   int get todayCount => StorageService.todayAdRecords.length;
 }
