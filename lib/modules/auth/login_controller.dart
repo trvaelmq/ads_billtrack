@@ -21,9 +21,14 @@ class LoginController extends GetxController {
     final result = await AuthService.to.login(username, password);
     loading.value = false;
     if (result.success) {
-      // 登录页为栈底根页，登录成功后进入首页
-      Get.offAllNamed(Routes.main);
       final name = AuthService.to.userInfo.value?.nickname ?? username;
+      // 有上一页（如从闸门进入）则返回并回传结果，让原操作自动继续；
+      // 否则（独立进入）回到首页。
+      if (Navigator.canPop(Get.context!)) {
+        Get.back(result: true);
+      } else {
+        Get.offAllNamed(Routes.main);
+      }
       Get.snackbar('登录成功', '欢迎回来，$name', snackPosition: SnackPosition.BOTTOM);
     } else {
       Get.snackbar('登录失败', result.message, snackPosition: SnackPosition.BOTTOM);

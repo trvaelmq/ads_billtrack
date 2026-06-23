@@ -10,13 +10,10 @@ class LoginView extends GetView<LoginController> {
 
   @override
   Widget build(BuildContext context) {
-    // 强制登录：屏蔽系统返回键，未登录不可退出到首页或退出应用
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
+    return Scaffold(
       appBar: AppBar(
         backgroundColor: AppTheme.primaryStart,
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: true,
         title: const Text('登录',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
       ),
@@ -81,7 +78,6 @@ class LoginView extends GetView<LoginController> {
                 style: TextStyle(color: AppTheme.primary)),
           ),
         ],
-      ),
       ),
     );
   }

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../data/models/user_info.dart';
 import '../../router/app_pages.dart';
@@ -6,7 +7,7 @@ import '../network/api_result.dart';
 import 'storage_service.dart';
 
 /// 认证服务：登录状态、token 持久化、认证接口业务封装。
-/// 应用强制登录：进入即需登录，token 失效（401）自动踢回登录页。
+/// 登录可选：游客可直接使用，写入/输出操作前经 ensureLoggedIn 按需登录。
 class AuthService extends GetxService {
   static AuthService get to => Get.find();
 
@@ -80,6 +81,26 @@ class AuthService extends GetxService {
     return loginResult;
   }
 
+  /// 操作前登录闸门：已登录直接放行；未登录弹确认框，
+  /// 用户选择去登录并登录成功后返回 true，否则返回 false。
+  Future<bool> ensureLoggedIn(
+      {String message = '此操作需要登录后才能使用，是否前往登录？'}) async {
+    if (isLoggedIn.value) return true;
+    final go = await Get.dialog<bool>(AlertDialog(
+      title: const Text('需要登录'),
+      content: Text(message),
+      actions: [
+        TextButton(
+            onPressed: () => Get.back(result: false), child: const Text('取消')),
+        TextButton(
+            onPressed: () => Get.back(result: true), child: const Text('去登录')),
+      ],
+    ));
+    if (go != true) return false;
+    await Get.toNamed(Routes.login);
+    return isLoggedIn.value;
+  }
+
   Future<ApiResult<void>> login(String username, String password) async {
     final result = await _api.postJson<Map<String, dynamic>>(
       '/api/auth/login',
@@ -123,12 +144,8 @@ class AuthService extends GetxService {
     StorageService.clearAuth();
   }
 
-  /// token 失效（401）回调：清本地态并踢回登录页（避免在登录/注册页时重复跳转）。
+  /// token 失效（401）回调：仅清本地登录态，不再强制跳转登录页。
   void _onUnauthorized() {
     _clearLocal();
-    final current = Get.currentRoute;
-    if (current != Routes.login && current != Routes.register) {
-      Get.offAllNamed(Routes.login);
-    }
   }
 }
