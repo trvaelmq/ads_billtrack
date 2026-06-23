@@ -24,7 +24,7 @@ class LoginController extends GetxController {
       final name = AuthService.to.userInfo.value?.nickname ?? username;
       // 有上一页（如从闸门进入）则返回并回传结果，让原操作自动继续；
       // 否则（独立进入）回到首页。
-      if (Navigator.canPop(Get.context!)) {
+      if (Get.previousRoute.isNotEmpty) {
         Get.back(result: true);
       } else {
         Get.offAllNamed(Routes.main);
