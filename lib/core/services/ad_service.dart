@@ -156,7 +156,7 @@ class AdService extends GetxService {
         loadRewardedAd();
         break;
 
-      // 激励视频看完：记录 + 发金币（不在这里 reload，统一在 closed 里）
+      // 激励视频看完：记录观看 + 启动冷却（不在这里 reload，统一在 closed 里）
       case 'rewarded.rewarded':
         _recordRewarded();
         break;
@@ -168,7 +168,7 @@ class AdService extends GetxService {
         Get.toNamed('/history');
         break;
 
-      // 开屏：不记录、不发金币
+      // 开屏：不记录
       case 'splash.dismissed':
       case 'splash.failed':
         if (!_splashDone.isCompleted) _splashDone.complete();
