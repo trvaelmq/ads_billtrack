@@ -29,12 +29,4 @@ class AdConfig {
   static const String methodChannel = 'com.billtrack/ad_method';
   static const String eventChannel  = 'com.billtrack/ad_event';
 
-  // ── 金币奖励 ─────────────────────────────────────────────────────
-  static const int rewardCoins        = 30; // 激励视频
-  static const int splashCoins        = 3;  // 开屏广告
-  static const int interstitialCoins  = 8;  // 插屏广告
-  static const int checkinCoins       = 5;  // 每日签到
-  static const int checkinStreakBonus = 20; // 7连签奖励
-
-  static const int dailyRewardedLimit = 10;
 }

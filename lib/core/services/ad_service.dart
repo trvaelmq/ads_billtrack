@@ -14,9 +14,6 @@ class AdService extends GetxService {
 
   final RxBool isRewardedReady = false.obs;
   final RxInt todayWatchCount = 0.obs; // 仅统计激励视频次数
-  final RxInt totalCoins = 0.obs;
-  final RxBool showCoinAnimation = false.obs;
-  final RxInt lastEarnedCoins = 0.obs;
   final RxInt cooldownRemaining = 0.obs;
   Timer? _cooldownTimer;
   Timer? _preRewardedTimer;
@@ -36,7 +33,6 @@ class AdService extends GetxService {
   void onInit() {
     super.onInit();
     debugPrint('[AdService] onInit');
-    totalCoins.value = StorageService.totalCoins;
     todayWatchCount.value = StorageService.todayAdRecords.length;
     _event.receiveBroadcastStream().listen(_onAdEvent);
     loadRewardedAd();
@@ -210,14 +206,8 @@ class AdService extends GetxService {
   }
 
   Future<void> _recordRewarded() async {
-    await StorageService.saveAdRecord('rewarded', AdConfig.rewardCoins);
-    await StorageService.addCoins(AdConfig.rewardCoins);
-    totalCoins.value = StorageService.totalCoins;
+    await StorageService.saveAdRecord('rewarded');
     todayWatchCount.value = StorageService.todayAdRecords.length;
-    lastEarnedCoins.value = AdConfig.rewardCoins;
-    showCoinAnimation.value = true;
-    await Future.delayed(const Duration(milliseconds: 1500));
-    showCoinAnimation.value = false;
     _startCooldown();
   }
 
@@ -233,10 +223,6 @@ class AdService extends GetxService {
         cooldownRemaining.value--;
       }
     });
-  }
-
-  void refreshCoins() {
-    totalCoins.value = StorageService.totalCoins;
   }
 
   @override

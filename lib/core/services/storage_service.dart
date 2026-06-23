@@ -62,44 +62,11 @@ class StorageService {
   static String get nickname => _prefs.getString('nickname') ?? '用户';
   static Future<void> setNickname(String v) => _prefs.setString('nickname', v);
 
-  static int    get totalCoins => _prefs.getInt('total_coins') ?? 0;
-  static Future<void> addCoins(int v) => _prefs.setInt('total_coins', totalCoins + v);
-
   static String get joinDate => _prefs.getString('join_date') ?? DateTime.now().toIso8601String();
   static Future<void> setJoinDate() async {
     if (!_prefs.containsKey('join_date')) {
       await _prefs.setString('join_date', DateTime.now().toIso8601String());
     }
-  }
-
-  // ── 签到 ──────────────────────────────────────────────────────────
-  static bool get hasCheckedInToday {
-    final last = _prefs.getString('last_checkin_date');
-    if (last == null) return false;
-    final d = DateTime.parse(last);
-    final now = DateTime.now();
-    return d.year == now.year && d.month == now.month && d.day == now.day;
-  }
-
-  static int get checkinStreak => _prefs.getInt('checkin_streak') ?? 0;
-
-  static Future<int> doCheckin() async {
-    if (hasCheckedInToday) return 0;
-    final now = DateTime.now();
-    final last = _prefs.getString('last_checkin_date');
-    int streak = checkinStreak;
-    if (last != null) {
-      final d = DateTime.parse(last);
-      final diff = now.difference(DateTime(d.year, d.month, d.day)).inDays;
-      streak = diff == 1 ? streak + 1 : 1;
-    } else {
-      streak = 1;
-    }
-    await _prefs.setString('last_checkin_date', now.toIso8601String());
-    await _prefs.setInt('checkin_streak', streak);
-    final coins = (streak % 7 == 0) ? 20 : 5;
-    await addCoins(coins);
-    return coins;
   }
 
   // ── 预算 ──────────────────────────────────────────────────────────
@@ -169,11 +136,11 @@ class StorageService {
     }).toList();
   }
 
-  static Future<void> saveAdRecord(String adType, int coins) async {
+  static Future<void> saveAdRecord(String adType) async {
     final record = AdRecord()
       ..id          = const Uuid().v4()
       ..adType      = adType
-      ..coinsEarned = coins
+      ..coinsEarned = 0
       ..watchedAt   = DateTime.now();
     await _adBox.put(record.id, record);
   }
