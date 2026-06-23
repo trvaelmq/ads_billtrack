@@ -248,8 +248,8 @@ class ProfileView extends GetView<ProfileController> {
     ));
     if (ok != true) return;
     await AuthService.to.logout();
-    // 强制登录：退出后回到登录页（本地数据保留）
-    Get.offAllNamed(Routes.login);
+    // 登录可选：退出后回到首页（本地数据保留），需要时再按需登录
+    Get.offAllNamed(Routes.main);
     Get.snackbar('已退出登录', '本地数据已保留', snackPosition: SnackPosition.BOTTOM);
   }
 
