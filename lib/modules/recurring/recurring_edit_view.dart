@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/recurring_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/recurring_rule.dart';
@@ -54,6 +55,7 @@ class _RecurringEditViewState extends State<RecurringEditView> {
       Get.snackbar('提示', '请输入有效金额', snackPosition: SnackPosition.BOTTOM);
       return;
     }
+    if (!await AuthService.to.ensureLoggedIn(message: '保存定期账单需要登录，是否前往登录？')) return;
     if (_editing != null) {
       _editing!
         ..title      = _titleCtrl.text.trim()

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/services/ad_service.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/bill_service.dart';
 import '../../core/services/recurring_service.dart';
 import '../../core/services/storage_service.dart';
@@ -616,6 +617,7 @@ class _DueBanner extends StatelessWidget {
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           onPressed: () async {
+            if (!await AuthService.to.ensureLoggedIn(message: '记录账单需要登录，是否前往登录？')) return;
             await RecurringService.to.recordDue(rule);
             Get.snackbar('已记录', '「${rule.title}」已记录到本月账单', snackPosition: SnackPosition.BOTTOM);
           },

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/bill_service.dart';
 
 class AddBillController extends GetxController {
@@ -36,6 +37,8 @@ class AddBillController extends GetxController {
     if (amountStr.isEmpty) { Get.snackbar('提示', '请输入金额'); return; }
     final amount = double.tryParse(amountStr);
     if (amount == null || amount <= 0) { Get.snackbar('提示', '金额格式不正确'); return; }
+
+    if (!await AuthService.to.ensureLoggedIn(message: '保存账单需要登录，是否前往登录？')) return;
 
     await BillService.to.addBill(
       amount:   amount,

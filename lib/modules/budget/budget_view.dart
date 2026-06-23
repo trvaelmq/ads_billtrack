@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/bill_service.dart';
 import '../../core/theme/app_theme.dart';
 import 'budget_controller.dart';
@@ -101,7 +102,8 @@ class BudgetView extends GetView<BudgetController> {
         actions: [
           TextButton(onPressed: () => Get.back(), child: const Text('取消')),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
+              if (!await AuthService.to.ensureLoggedIn(message: '设置预算需要登录，是否前往登录？')) return;
               final v = double.tryParse(tc.text.trim()) ?? 0;
               controller.setBudget(cat.id, v);
               Get.back();

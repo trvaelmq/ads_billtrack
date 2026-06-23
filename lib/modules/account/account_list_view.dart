@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/services/account_service.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/theme/app_theme.dart';
 import 'account_edit_view.dart';
 import 'account_transfer_view.dart';
@@ -53,7 +54,10 @@ class AccountListView extends StatelessWidget {
                   title: Text(a.name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                   trailing: Text('¥${a.balance.toStringAsFixed(2)}',
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  onTap: () => Get.to(() => AccountEditView(account: a)),
+                  onTap: () async {
+                    if (!await AuthService.to.ensureLoggedIn(message: '管理账户需要登录，是否前往登录？')) return;
+                    Get.to(() => AccountEditView(account: a));
+                  },
                 ),
               );
             },
@@ -63,12 +67,18 @@ class AccountListView extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           child: Row(children: [
             Expanded(child: OutlinedButton.icon(
-              onPressed: () => Get.to(() => const AccountTransferView()),
+              onPressed: () async {
+                if (!await AuthService.to.ensureLoggedIn(message: '账户转账需要登录，是否前往登录？')) return;
+                Get.to(() => const AccountTransferView());
+              },
               icon: const Icon(Icons.swap_horiz), label: const Text('转账'),
             )),
             const SizedBox(width: 12),
             Expanded(child: ElevatedButton.icon(
-              onPressed: () => Get.to(() => const AccountEditView()),
+              onPressed: () async {
+                if (!await AuthService.to.ensureLoggedIn(message: '新增账户需要登录，是否前往登录？')) return;
+                Get.to(() => const AccountEditView());
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary, foregroundColor: Colors.white),
               icon: const Icon(Icons.add), label: const Text('新增账户'),

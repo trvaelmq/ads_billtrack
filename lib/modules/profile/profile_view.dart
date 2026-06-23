@@ -42,10 +42,9 @@ class ProfileView extends GetView<ProfileController> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: GestureDetector(
-                    onTap: () {
-                      if (!AuthService.to.isLoggedIn.value) {
-                        Get.toNamed(Routes.login);
-                      }
+                    onTap: () async {
+                      if (!await AuthService.to.ensureLoggedIn(message: '修改资料需要登录，是否前往登录？')) return;
+                      controller.editNickname();
                     },
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,7 +137,10 @@ class ProfileView extends GetView<ProfileController> {
             icon: Icons.download_outlined,
             label: '导出账单',
             subtitle: '将账单导出为 CSV 文件',
-            onTap: () => _showExportDialog(),
+            onTap: () async {
+              if (!await AuthService.to.ensureLoggedIn(message: '导出账单需要登录，是否前往登录？')) return;
+              _showExportDialog();
+            },
           ),
           _MenuItem(
             icon: Icons.info_outline,
