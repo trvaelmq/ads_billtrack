@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../core/constants/ad_config.dart';
 
 class BannerAdWidget extends StatelessWidget {
   final double height;
@@ -10,7 +11,10 @@ class BannerAdWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final args = posId != null ? <String, dynamic>{'posId': posId} : null;
+    final args = <String, dynamic>{
+      if (posId != null) 'posId': posId,
+      'floor': AdConfig.bannerFloor,
+    };
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       return SizedBox(
         height: height,
