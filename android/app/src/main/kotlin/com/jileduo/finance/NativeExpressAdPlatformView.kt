@@ -21,7 +21,8 @@ class NativeExpressAdViewFactory(private val activity: Activity) :
         val posId  = params?.get("posId")  as? String ?: AdConfig.BANNER_POS_ID
         val width  = params?.get("width")  as? Int    ?: ADSize.FULL_WIDTH
         val height = params?.get("height") as? Int    ?: ADSize.AUTO_HEIGHT
-        return NativeExpressAdPlatformView(activity, posId, width, height)
+        val floor  = params?.get("floor")  as? Int    ?: 0
+        return NativeExpressAdPlatformView(activity, posId, width, height, floor)
     }
 }
 
@@ -29,7 +30,8 @@ class NativeExpressAdPlatformView(
     private val activity: Activity,
     posId: String,
     width: Int,
-    height: Int
+    height: Int,
+    private val floor: Int
 ) : PlatformView {
 
     private val container = FrameLayout(activity)
@@ -44,8 +46,11 @@ class NativeExpressAdPlatformView(
                 }
                 override fun onADLoaded(views: List<NativeExpressADView>) {
                     val adView = views.firstOrNull() ?: return
-                    adView.render()
-                    Log.d("NativeExpress", "加载成功，开始 render")
+                    val e = adView.getECPM()
+                    when (Bidding.evaluate(e, floor, adView)) {
+                        BidResult.LOST -> Log.e("NativeExpress", "竞败 ecpm=$e floor=$floor，不展示")
+                        else -> { adView.render(); Log.d("NativeExpress", "加载成功 ecpm=$e floor=$floor，开始 render") }
+                    }
                 }
                 override fun onRenderSuccess(adView: NativeExpressADView) {
                     activity.runOnUiThread { container.addView(adView) }
