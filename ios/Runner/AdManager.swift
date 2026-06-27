@@ -10,9 +10,13 @@ class AdManager: NSObject {
     private var splashOverlayWindow: UIWindow?   // 独立高层级窗口，覆盖 Flutter 内容
     private weak var interstitialVC: UIViewController?
     private var interstitialIsFullScreen = false
+    private var splashFloor = 0
+    private var rewardedFloor = 0
+    private var interstitialFloor = 0
 
     // ── Splash ────────────────────────────────────────────────────
-    func loadSplashAd(posId: String, viewController: UIViewController) {
+    func loadSplashAd(posId: String, floor: Int, viewController: UIViewController) {
+        splashFloor = floor
         // 创建独立 UIWindow，windowLevel 高于主窗口，确保盖住 Flutter 页面
         let overlayWindow: UIWindow
         if #available(iOS 13, *) {
@@ -48,7 +52,8 @@ class AdManager: NSObject {
     }
 
     // ── Rewarded Video ────────────────────────────────────────────
-    func loadRewardedAd(posId: String, viewController: UIViewController) {
+    func loadRewardedAd(posId: String, floor: Int, viewController: UIViewController) {
+        rewardedFloor = floor
         rewardedAd = GDTRewardVideoAd(placementId: posId)
         rewardedAd?.delegate = self
         rewardedAd?.load()
@@ -59,12 +64,24 @@ class AdManager: NSObject {
         guard let ad = rewardedAd, ad.isAdValid else {
             sendEvent("rewarded", event: "not_ready"); return
         }
-        ad.show(fromRootViewController: viewController)
+        let e = ad.eCPM()
+        switch gdtEvaluateBid(eCPM: e, floor: rewardedFloor, ad: ad) {
+        case .won:
+            sendEvent("rewarded", event: "bid_won", ecpm: e, floor: rewardedFloor)
+            ad.show(fromRootViewController: viewController)
+        case .skipped:
+            ad.show(fromRootViewController: viewController)
+        case .lost:
+            sendEvent("rewarded", event: "bid_lost", ecpm: e, floor: rewardedFloor)
+            sendEvent("rewarded", event: "not_ready") // 复用 not_ready 让 Flutter 结束流程并 reload
+            rewardedAd = nil
+        }
     }
 
     // ── Interstitial（弹框）────────────────────────────────────────
-    func loadInterstitialAd(posId: String, viewController: UIViewController) {
+    func loadInterstitialAd(posId: String, floor: Int, viewController: UIViewController) {
         interstitialIsFullScreen = false
+        interstitialFloor = floor
         interstitialVC = viewController
         interstitialAd = GDTUnifiedInterstitialAd(placementId: posId)
         interstitialAd?.delegate = self
@@ -73,8 +90,9 @@ class AdManager: NSObject {
     }
 
     // ── Interstitial（全屏）────────────────────────────────────────
-    func loadFullScreenInterstitialAd(posId: String, viewController: UIViewController) {
+    func loadFullScreenInterstitialAd(posId: String, floor: Int, viewController: UIViewController) {
         interstitialIsFullScreen = true
+        interstitialFloor = floor
         interstitialVC = viewController
         interstitialAd = GDTUnifiedInterstitialAd(placementId: posId)
         interstitialAd?.delegate = self
@@ -88,6 +106,11 @@ class AdManager: NSObject {
         if !msg.isEmpty { data["msg"] = msg }
         DispatchQueue.main.async { self.eventSink?(data) }
     }
+
+    func sendEvent(_ type: String, event: String, ecpm: Int, floor: Int) {
+        let data: [String: Any] = ["type": type, "event": event, "ecpm": ecpm, "floor": floor]
+        DispatchQueue.main.async { self.eventSink?(data) }
+    }
 }
 
 // ── Delegates ─────────────────────────────────────────────────────
@@ -97,7 +120,19 @@ extension AdManager: GDTSplashAdDelegate {
             sendEvent("splash", event: "failed", msg: "overlay window missing")
             return
         }
-        splashAd.show(in: window, withBottomView: nil, skip: nil)
+        let e = splashAd.eCPM()
+        switch gdtEvaluateBid(eCPM: e, floor: splashFloor, ad: splashAd) {
+        case .won:
+            sendEvent("splash", event: "bid_won", ecpm: e, floor: splashFloor)
+            splashAd.show(in: window, withBottomView: nil, skip: nil)
+        case .skipped:
+            splashAd.show(in: window, withBottomView: nil, skip: nil)
+        case .lost:
+            sendEvent("splash", event: "bid_lost", ecpm: e, floor: splashFloor)
+            // 复用 failed：Flutter 收到后完成 splashDone → 进首页 → 调 dismissSplashAd 移除 overlay
+            sendEvent("splash", event: "failed", msg: "bid_lost")
+            self.splashAd = nil
+        }
     }
     func splashAdSuccessPresentScreen(_ splashAd: GDTSplashAd) {
         sendEvent("splash", event: "shown")
@@ -138,13 +173,24 @@ extension AdManager: GDTRewardedVideoAdDelegate {
 extension AdManager: GDTUnifiedInterstitialAdDelegate {
     func unifiedInterstitialSuccess(toLoad unifiedInterstitial: GDTUnifiedInterstitialAd) {
         sendEvent("interstitial", event: "loaded")
-        // 加载完成后立即展示
         guard let vc = interstitialVC else { return }
-        DispatchQueue.main.async {
-            if self.interstitialIsFullScreen {
-                unifiedInterstitial.presentFullScreenAd(fromRootViewController: vc)
-            } else {
-                unifiedInterstitial.present(fromRootViewController: vc)
+        let e = unifiedInterstitial.eCPM()
+        let result = gdtEvaluateBid(eCPM: e, floor: interstitialFloor, ad: unifiedInterstitial)
+        switch result {
+        case .lost:
+            sendEvent("interstitial", event: "bid_lost", ecpm: e, floor: interstitialFloor)
+            sendEvent("interstitial", event: "failed", msg: "bid_lost") // 复用 failed 让流程跳过
+            self.interstitialAd = nil
+        case .won, .skipped:
+            if result == .won {
+                sendEvent("interstitial", event: "bid_won", ecpm: e, floor: interstitialFloor)
+            }
+            DispatchQueue.main.async {
+                if self.interstitialIsFullScreen {
+                    unifiedInterstitial.presentFullScreenAd(fromRootViewController: vc)
+                } else {
+                    unifiedInterstitial.present(fromRootViewController: vc)
+                }
             }
         }
     }
