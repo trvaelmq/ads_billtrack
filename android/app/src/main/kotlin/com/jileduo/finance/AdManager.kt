@@ -25,12 +25,16 @@ class AdManager {
     private var interstitialAd: UnifiedInterstitialAD? = null
     private var splashAd: SplashAD? = null
     private var splashContainer: FrameLayout? = null
+    private var splashFloor = 0
+    private var rewardedFloor = 0
+    private var interstitialFloor = 0
 
     // ── Splash ───────────────────────────────────────────────────
-    fun showSplashAd(activity: Activity, posId: String = AdConfig.SPLASH_POS_ID) {
+    fun showSplashAd(activity: Activity, posId: String = AdConfig.SPLASH_POS_ID, floor: Int = 0) {
         Log.d("GDT_AD", "showSplashAd called, sdkReady=${MyApplication.sdkReady}")
+        splashFloor = floor
         if (splashAd != null) return
-        MyApplication.runWhenReady { doShowSplashAd(activity, posId) }
+        MyApplication.runWhenReady { doShowSplashAd(activity, posId, floor) }
     }
 
     fun dismissSplashAd() {
@@ -40,7 +44,7 @@ class AdManager {
         }
     }
 
-    private fun doShowSplashAd(activity: Activity, posId: String = AdConfig.SPLASH_POS_ID) {
+    private fun doShowSplashAd(activity: Activity, posId: String = AdConfig.SPLASH_POS_ID, floor: Int = 0) {
         Log.d("GDT_AD", "doShowSplashAd posId=$posId")
         if (splashAd != null) return
 
@@ -56,7 +60,18 @@ class AdManager {
         splashAd = SplashAD(activity, posId, object : SplashADListener {
             override fun onADLoaded(skipTime: Long) {
                 Log.d("GDT_AD", "splash onADLoaded")
-                splashAd?.showAd(container)
+                val ad = splashAd ?: return
+                val e = ad.getECPM()
+                when (Bidding.evaluate(e, floor, ad)) {
+                    BidResult.WON -> { sendEvent("splash", "bid_won", e, floor); ad.showAd(container) }
+                    BidResult.SKIPPED -> ad.showAd(container)
+                    BidResult.LOST -> {
+                        sendEvent("splash", "bid_lost", e, floor)
+                        sendEvent("splash", "failed", "bid_lost")
+                        handler.post { removeSplashOverlay() }
+                        splashAd = null
+                    }
+                }
             }
             override fun onADPresent()              { sendEvent("splash", "shown") }
             override fun onADDismissed()            {
@@ -86,8 +101,9 @@ class AdManager {
     }
 
     // ── Rewarded Video ───────────────────────────────────────────
-    fun loadRewardedAd(activity: Activity, posId: String = AdConfig.REWARDED_POS_ID) {
+    fun loadRewardedAd(activity: Activity, posId: String = AdConfig.REWARDED_POS_ID, floor: Int = 0) {
         Log.d("GDT_AD", "loadRewardedAd called, sdkReady=${MyApplication.sdkReady}")
+        rewardedFloor = floor
         MyApplication.runWhenReady { doLoadRewardedAd(activity, posId) }
     }
 
@@ -113,19 +129,41 @@ class AdManager {
         if (ad == null || !ad.isValid) {
             sendEvent("rewarded", "not_ready"); return
         }
-        ad.showAD(activity)
+        val e = ad.getECPM()
+        when (Bidding.evaluate(e, rewardedFloor, ad)) {
+            BidResult.WON -> { sendEvent("rewarded", "bid_won", e, rewardedFloor); ad.showAD(activity) }
+            BidResult.SKIPPED -> ad.showAD(activity)
+            BidResult.LOST -> {
+                sendEvent("rewarded", "bid_lost", e, rewardedFloor)
+                sendEvent("rewarded", "not_ready") // 复用 not_ready 让 Flutter 结束流程并 reload
+                rewardedAd = null
+            }
+        }
     }
 
     // ── Interstitial（弹框）──────────────────────────────────────
-    fun showInterstitialAd(activity: Activity, posId: String = AdConfig.INTERSTITIAL_POS_ID) {
+    fun showInterstitialAd(activity: Activity, posId: String = AdConfig.INTERSTITIAL_POS_ID, floor: Int = 0) {
         Log.d("GDT_AD", "showInterstitialAd called, sdkReady=${MyApplication.sdkReady}")
+        interstitialFloor = floor
         MyApplication.runWhenReady { doShowInterstitialAd(activity, posId) }
     }
 
     private fun doShowInterstitialAd(activity: Activity, posId: String = AdConfig.INTERSTITIAL_POS_ID) {
         Log.d("GDT_AD", "doShowInterstitialAd posId=$posId")
         interstitialAd = UnifiedInterstitialAD(activity, posId, object : UnifiedInterstitialADListener {
-            override fun onADReceive()          { sendEvent("interstitial", "loaded"); handler.post { interstitialAd?.show(activity) } }
+            override fun onADReceive() {
+                sendEvent("interstitial", "loaded")
+                val ad = interstitialAd ?: return
+                val e = ad.getECPM()
+                when (Bidding.evaluate(e, interstitialFloor, ad)) {
+                    BidResult.WON -> { sendEvent("interstitial", "bid_won", e, interstitialFloor); handler.post { ad.show(activity) } }
+                    BidResult.SKIPPED -> handler.post { ad.show(activity) }
+                    BidResult.LOST -> {
+                        sendEvent("interstitial", "bid_lost", e, interstitialFloor)
+                        sendEvent("interstitial", "failed", "bid_lost")
+                    }
+                }
+            }
             override fun onVideoCached()        {}
             override fun onNoAD(e: AdError?)    { sendEvent("interstitial", "failed", e?.errorMsg ?: ""); Log.e("GDT_AD", "interstitial onNoAD code=${e?.errorCode} msg=${e?.errorMsg}") }
             override fun onADOpened()           {}
@@ -141,15 +179,28 @@ class AdManager {
     }
 
     // ── Interstitial（全屏）──────────────────────────────────────
-    fun showFullScreenInterstitialAd(activity: Activity, posId: String = AdConfig.INTERSTITIAL_POS_ID) {
+    fun showFullScreenInterstitialAd(activity: Activity, posId: String = AdConfig.INTERSTITIAL_POS_ID, floor: Int = 0) {
         Log.d("GDT_AD", "showFullScreenInterstitialAd called, sdkReady=${MyApplication.sdkReady}")
+        interstitialFloor = floor
         MyApplication.runWhenReady { doShowFullScreenInterstitialAd(activity, posId) }
     }
 
     private fun doShowFullScreenInterstitialAd(activity: Activity, posId: String = AdConfig.INTERSTITIAL_POS_ID) {
         Log.d("GDT_AD", "doShowFullScreenInterstitialAd posId=$posId")
         interstitialAd = UnifiedInterstitialAD(activity, posId, object : UnifiedInterstitialADListener {
-            override fun onADReceive()          { sendEvent("interstitial", "loaded"); handler.post { interstitialAd?.showFullScreenAD(activity) } }
+            override fun onADReceive() {
+                sendEvent("interstitial", "loaded")
+                val ad = interstitialAd ?: return
+                val e = ad.getECPM()
+                when (Bidding.evaluate(e, interstitialFloor, ad)) {
+                    BidResult.WON -> { sendEvent("interstitial", "bid_won", e, interstitialFloor); handler.post { ad.showFullScreenAD(activity) } }
+                    BidResult.SKIPPED -> handler.post { ad.showFullScreenAD(activity) }
+                    BidResult.LOST -> {
+                        sendEvent("interstitial", "bid_lost", e, interstitialFloor)
+                        sendEvent("interstitial", "failed", "bid_lost")
+                    }
+                }
+            }
             override fun onVideoCached()        {}
             override fun onNoAD(e: AdError?)    { sendEvent("interstitial", "failed", e?.errorMsg ?: ""); Log.e("GDT_AD", "interstitial onNoAD code=${e?.errorCode} msg=${e?.errorMsg}") }
             override fun onADOpened()           {}
@@ -168,6 +219,11 @@ class AdManager {
     private fun sendEvent(type: String, event: String, msg: String = "") {
         val data = mutableMapOf<String, Any>("type" to type, "event" to event)
         if (msg.isNotEmpty()) data["msg"] = msg
+        handler.post { eventSink?.success(data) }
+    }
+
+    private fun sendEvent(type: String, event: String, ecpm: Int, floor: Int) {
+        val data = mapOf<String, Any>("type" to type, "event" to event, "ecpm" to ecpm, "floor" to floor)
         handler.post { eventSink?.success(data) }
     }
 }
