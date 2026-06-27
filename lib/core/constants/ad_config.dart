@@ -25,6 +25,27 @@ class AdConfig {
   static String get interstitialPosId => Platform.isIOS ? _iosInterstitialPosId : _androidInterstitialPosId;
   static String get detailBannerPosId => Platform.isIOS ? _iosDetailBannerPosId : _androidDetailBannerPosId;
 
+  // ── 竞价底价（分/千次）─────────────────────────────────────────
+  // 0 = 不过滤（任意 eCPM>=0 即竞胜）。eCPM<=0（未配竞价位/取不到价）时原生会跳过竞价正常展示。
+  // 待真机调优后填真实值。
+  static const int _iosSplashFloor       = 0;
+  static const int _iosRewardedFloor     = 0;
+  static const int _iosInterstitialFloor = 0;
+  static const int _iosBannerFloor       = 0;
+  static const int _iosNativeFloor       = 0;
+
+  static const int _androidSplashFloor       = 0;
+  static const int _androidRewardedFloor     = 0;
+  static const int _androidInterstitialFloor = 0;
+  static const int _androidBannerFloor       = 0;
+  static const int _androidNativeFloor       = 0;
+
+  static int get splashFloor       => Platform.isIOS ? _iosSplashFloor       : _androidSplashFloor;
+  static int get rewardedFloor     => Platform.isIOS ? _iosRewardedFloor     : _androidRewardedFloor;
+  static int get interstitialFloor => Platform.isIOS ? _iosInterstitialFloor : _androidInterstitialFloor;
+  static int get bannerFloor       => Platform.isIOS ? _iosBannerFloor       : _androidBannerFloor;
+  static int get nativeFloor       => Platform.isIOS ? _iosNativeFloor       : _androidNativeFloor;
+
   // ── Flutter ↔ Native 通信通道 ────────────────────────────────────
   static const String methodChannel = 'com.billtrack/ad_method';
   static const String eventChannel  = 'com.billtrack/ad_event';
