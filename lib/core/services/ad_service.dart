@@ -51,6 +51,7 @@ class AdService extends GetxService {
       await _method.invokeMethod('showSplashAd', {
         'posId': AdConfig.splashPosId,
         'appId': AdConfig.appId,
+        'floor': AdConfig.splashFloor,
       });
     } catch (e) {
       debugPrint('[AdService] showSplashAd error: $e');
@@ -71,6 +72,7 @@ class AdService extends GetxService {
       await _method.invokeMethod('loadRewardedAd', {
         'posId': AdConfig.rewardedPosId,
         'appId': AdConfig.appId,
+        'floor': AdConfig.rewardedFloor,
       });
     } catch (e) {
       debugPrint('[AdService] loadRewardedAd error: $e');
@@ -90,6 +92,7 @@ class AdService extends GetxService {
       await _method.invokeMethod('showInterstitialAd', {
         'posId': AdConfig.interstitialPosId,
         'appId': AdConfig.appId,
+        'floor': AdConfig.interstitialFloor,
       });
     } catch (e) {
       debugPrint('[AdService] showInterstitialAd error: $e');
@@ -101,6 +104,7 @@ class AdService extends GetxService {
       await _method.invokeMethod('showFullScreenInterstitialAd', {
         'posId': AdConfig.interstitialPosId,
         'appId': AdConfig.appId,
+        'floor': AdConfig.interstitialFloor,
       });
     } catch (e) {
       debugPrint('[AdService] showFullScreenInterstitialAd error: $e');
@@ -144,6 +148,12 @@ class AdService extends GetxService {
     final type = data['type'] as String? ?? '';
     final event = data['event'] as String? ?? '';
     debugPrint('[AdService] event: $type.$event');
+
+    // 竞价结果仅记录日志，实际兜底由原生随后发出的 failed/not_ready 完成
+    if (event == 'bid_won' || event == 'bid_lost') {
+      debugPrint('[AdService] $event: type=$type ecpm=${data['ecpm']} floor=${data['floor']}');
+      return;
+    }
 
     switch ('$type.$event') {
       case 'rewarded.loaded':
