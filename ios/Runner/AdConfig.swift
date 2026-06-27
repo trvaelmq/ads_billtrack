@@ -6,6 +6,9 @@ struct AdConfig {
     static let rewardedPosId     = "2219411821577645"
     static let bannerPosId       = "2229514851277719"
     static let interstitialPosId = "5249065638219372"
+    // TODO: 竞败上报的竞胜方渠道 id（必填）。本应用竞胜方为自设底价、无真实 ADN，
+    // 需从优量汇后台/文档确认正确枚举后替换此占位值。
+    static let kSelfAdnId = "1"
 }
 
 struct AdChannels {
