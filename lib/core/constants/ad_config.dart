@@ -27,18 +27,18 @@ class AdConfig {
 
   // ── 竞价底价（分/千次）─────────────────────────────────────────
   // 0 = 不过滤（任意 eCPM>=0 即竞胜）。eCPM<=0（未配竞价位/取不到价）时原生会跳过竞价正常展示。
-  // 待真机调优后填真实值。
-  static const int _iosSplashFloor       = 0;
-  static const int _iosRewardedFloor     = 0;
-  static const int _iosInterstitialFloor = 0;
-  static const int _iosBannerFloor       = 0;
-  static const int _iosNativeFloor       = 0;
+  // 单位换算：1 元 = 100 分。激励视频 15 元 = 1500 分；其余 3 元 = 300 分。
+  static const int _iosSplashFloor       = 300;
+  static const int _iosRewardedFloor     = 1500;
+  static const int _iosInterstitialFloor = 300;
+  static const int _iosBannerFloor       = 300;
+  static const int _iosNativeFloor       = 300;
 
-  static const int _androidSplashFloor       = 0;
-  static const int _androidRewardedFloor     = 0;
-  static const int _androidInterstitialFloor = 0;
-  static const int _androidBannerFloor       = 0;
-  static const int _androidNativeFloor       = 0;
+  static const int _androidSplashFloor       = 300;
+  static const int _androidRewardedFloor     = 1500;
+  static const int _androidInterstitialFloor = 300;
+  static const int _androidBannerFloor       = 300;
+  static const int _androidNativeFloor       = 300;
 
   static int get splashFloor       => Platform.isIOS ? _iosSplashFloor       : _androidSplashFloor;
   static int get rewardedFloor     => Platform.isIOS ? _iosRewardedFloor     : _androidRewardedFloor;
