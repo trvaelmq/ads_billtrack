@@ -11,8 +11,9 @@ class NativeExpressAdViewFactory: NSObject, FlutterPlatformViewFactory {
         let params = args as? [String: Any]
         let posId  = params?["posId"]  as? String  ?? AdConfig.interstitialPosId
         let height = params?["height"] as? CGFloat ?? frame.height
+        let floor  = params?["floor"]  as? Int     ?? 0
         return NativeExpressAdPlatformView(
-            frame: frame, posId: posId, adHeight: height,
+            frame: frame, posId: posId, adHeight: height, floor: floor,
             viewController: viewController ?? UIViewController()
         )
     }
@@ -25,8 +26,8 @@ class NativeExpressAdViewFactory: NSObject, FlutterPlatformViewFactory {
 class NativeExpressAdPlatformView: NSObject, FlutterPlatformView {
     private let container: NativeExpressContainerView
 
-    init(frame: CGRect, posId: String, adHeight: CGFloat, viewController: UIViewController) {
-        container = NativeExpressContainerView(frame: frame, posId: posId, adHeight: adHeight, viewController: viewController)
+    init(frame: CGRect, posId: String, adHeight: CGFloat, floor: Int, viewController: UIViewController) {
+        container = NativeExpressContainerView(frame: frame, posId: posId, adHeight: adHeight, floor: floor, viewController: viewController)
         super.init()
     }
 
@@ -36,14 +37,16 @@ class NativeExpressAdPlatformView: NSObject, FlutterPlatformView {
 class NativeExpressContainerView: UIView {
     private let posId: String
     private let adHeight: CGFloat
+    private let floor: Int
     private weak var viewController: UIViewController?
     private var nativeAd: GDTNativeExpressAd?
     private var adView: GDTNativeExpressAdView?
     private var loaded = false
 
-    init(frame: CGRect, posId: String, adHeight: CGFloat, viewController: UIViewController) {
+    init(frame: CGRect, posId: String, adHeight: CGFloat, floor: Int, viewController: UIViewController) {
         self.posId = posId
         self.adHeight = adHeight
+        self.floor = floor
         self.viewController = viewController
         super.init(frame: frame)
     }
@@ -67,10 +70,15 @@ extension NativeExpressContainerView: GDTNativeExpressAdDelegete {
     func nativeExpressAdSuccess(toLoad nativeExpressAd: GDTNativeExpressAd,
                                 views: [GDTNativeExpressAdView]) {
         guard let adView = views.first, let vc = viewController else { return }
-        self.adView = adView
-        adView.controller = vc  // 属性名为 controller
-        adView.render()
-        debugPrint("[NativeExpress] 加载成功，开始 render")
+        switch gdtEvaluateBid(eCPM: adView.eCPM(), floor: floor, ad: adView) {
+        case .lost:
+            debugPrint("[NativeExpress] 竞败 ecpm=\(adView.eCPM()) floor=\(floor)，不展示")
+        case .won, .skipped:
+            self.adView = adView
+            adView.controller = vc
+            adView.render()
+            debugPrint("[NativeExpress] 加载成功 ecpm=\(adView.eCPM()) floor=\(floor)，开始 render")
+        }
     }
 
     func nativeExpressAdViewRenderSuccess(_ nativeExpressAdView: GDTNativeExpressAdView) {
