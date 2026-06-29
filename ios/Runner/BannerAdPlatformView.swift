@@ -78,6 +78,6 @@ extension BannerContainerView: GDTUnifiedBannerViewDelegate {
         }
     }
     func unifiedBannerViewFailedToLoad(_ unifiedBannerView: GDTUnifiedBannerView, withError error: NSError) {
-        debugPrint("[Banner] 加载失败: \(error.localizedDescription)")
+        debugPrint("[Banner] 加载失败 code=\(error.code) msg=\(error.localizedDescription)")
     }
 }

@@ -42,7 +42,7 @@ class NativeExpressAdPlatformView(
             activity, adSize, posId,
             object : NativeExpressAD.NativeExpressADListener {
                 override fun onNoAD(error: AdError?) {
-                    Log.e("NativeExpress", "加载失败: ${error?.errorMsg}")
+                    Log.e("NativeExpress", "加载失败 code=${error?.errorCode} msg=${error?.errorMsg}")
                 }
                 override fun onADLoaded(views: List<NativeExpressADView>) {
                     val adView = views.firstOrNull() ?: return

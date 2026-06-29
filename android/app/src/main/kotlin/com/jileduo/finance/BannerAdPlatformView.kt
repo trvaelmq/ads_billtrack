@@ -39,7 +39,7 @@ class BannerAdPlatformView(activity: Activity, posId: String, private val floor:
             override fun onADClosed()               {}
             override fun onADClicked()              {}
             override fun onADLeftApplication()      {}
-            override fun onNoAD(e: AdError?)        {}
+            override fun onNoAD(e: AdError?)        { Log.d("Banner", "加载失败 code=${e?.errorCode} msg=${e?.errorMsg}") }
         })
         bannerView.setRefresh(30)
         bannerView.loadAD()

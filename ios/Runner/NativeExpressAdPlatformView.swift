@@ -92,6 +92,6 @@ extension NativeExpressContainerView: GDTNativeExpressAdDelegete {
     }
 
     func nativeExpressAdFailToLoad(_ nativeExpressAd: GDTNativeExpressAd, error: NSError) {
-        debugPrint("[NativeExpress] 加载失败: \(error.localizedDescription)")
+        debugPrint("[NativeExpress] 加载失败 code=\(error.code) msg=\(error.localizedDescription)")
     }
 }
