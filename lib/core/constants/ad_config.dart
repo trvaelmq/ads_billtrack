@@ -1,21 +1,22 @@
 import 'dart:io';
 
 class AdConfig {
-  // ── iOS 广告 ID ──────────────────────────────────────────────────
-  static const String _iosAppId             = '1216302675';
-  static const String _iosSplashPosId       = '8209410871679575';
-  static const String _iosRewardedPosId     = '2219411821577645';
-  static const String _iosBannerPosId       = '2229514851277719';
-  static const String _iosInterstitialPosId    = '5249065638219372';
-  static const String _iosDetailBannerPosId    = '3209363984768765';
+  // TODO(芒果平台): 以下均为占位值,ID 申请下发后替换
+  // ── iOS(Mediatom)广告 ID ─────────────────────────────────────
+  static const String _iosAppId              = 'MG_IOS_APP_ID_TODO';
+  static const String _iosSplashPosId        = 'MG_IOS_SPLASH_POS_ID_TODO';
+  static const String _iosRewardedPosId      = 'MG_IOS_REWARDED_POS_ID_TODO';
+  static const String _iosBannerPosId        = 'MG_IOS_BANNER_POS_ID_TODO';
+  static const String _iosInterstitialPosId  = 'MG_IOS_INTERSTITIAL_POS_ID_TODO';
+  static const String _iosDetailBannerPosId  = 'MG_IOS_NATIVE_POS_ID_TODO';
 
-  // ── Android 广告 ID ──────────────────────────────────────────────
-  static const String _androidAppId             = '1216276718';
-  static const String _androidSplashPosId       = '2269612550960760';
-  static const String _androidRewardedPosId     = '3259218520662808';
-  static const String _androidBannerPosId       = '1219512560072270';
-  static const String _androidInterstitialPosId = '5269645752095955';
-  static const String _androidDetailBannerPosId = '2321251085406479';
+  // ── Android(MgMobi)广告 ID ───────────────────────────────────
+  static const String _androidAppId             = 'MG_APP_ID_TODO';
+  static const String _androidSplashPosId       = 'MG_SPLASH_POS_ID_TODO';
+  static const String _androidRewardedPosId     = 'MG_REWARDED_POS_ID_TODO';
+  static const String _androidBannerPosId       = 'MG_BANNER_POS_ID_TODO';
+  static const String _androidInterstitialPosId = 'MG_INTERSTITIAL_POS_ID_TODO';
+  static const String _androidDetailBannerPosId = 'MG_NATIVE_POS_ID_TODO';
 
   // ── 对外接口（自动按平台选择）────────────────────────────────────
   static String get appId             => Platform.isIOS ? _iosAppId             : _androidAppId;
@@ -25,29 +26,7 @@ class AdConfig {
   static String get interstitialPosId => Platform.isIOS ? _iosInterstitialPosId : _androidInterstitialPosId;
   static String get detailBannerPosId => Platform.isIOS ? _iosDetailBannerPosId : _androidDetailBannerPosId;
 
-  // ── 竞价底价（分/千次）─────────────────────────────────────────
-  // 0 = 不过滤（任意 eCPM>=0 即竞胜）。eCPM<=0（未配竞价位/取不到价）时原生会跳过竞价正常展示。
-  // 单位换算：1 元 = 100 分。激励视频 15 元 = 1500 分；其余 3 元 = 300 分。
-  static const int _iosSplashFloor       = 300;
-  static const int _iosRewardedFloor     = 1500;
-  static const int _iosInterstitialFloor = 300;
-  static const int _iosBannerFloor       = 300;
-  static const int _iosNativeFloor       = 300;
-
-  static const int _androidSplashFloor       = 300;
-  static const int _androidRewardedFloor     = 1500;
-  static const int _androidInterstitialFloor = 300;
-  static const int _androidBannerFloor       = 300;
-  static const int _androidNativeFloor       = 300;
-
-  static int get splashFloor       => Platform.isIOS ? _iosSplashFloor       : _androidSplashFloor;
-  static int get rewardedFloor     => Platform.isIOS ? _iosRewardedFloor     : _androidRewardedFloor;
-  static int get interstitialFloor => Platform.isIOS ? _iosInterstitialFloor : _androidInterstitialFloor;
-  static int get bannerFloor       => Platform.isIOS ? _iosBannerFloor       : _androidBannerFloor;
-  static int get nativeFloor       => Platform.isIOS ? _iosNativeFloor       : _androidNativeFloor;
-
   // ── Flutter ↔ Native 通信通道 ────────────────────────────────────
   static const String methodChannel = 'com.billtrack/ad_method';
   static const String eventChannel  = 'com.billtrack/ad_event';
-
 }

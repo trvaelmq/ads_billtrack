@@ -17,7 +17,6 @@ class NativeExpressAdWidget extends StatelessWidget {
       'posId': posId ?? AdConfig.detailBannerPosId,
       'width': w.toInt(),
       'height': height.toInt(),
-      'floor': AdConfig.nativeFloor,
     };
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       return SizedBox(
