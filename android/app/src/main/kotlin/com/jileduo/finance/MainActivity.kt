@@ -19,15 +19,14 @@ class MainActivity : FlutterActivity() {
                 @Suppress("UNCHECKED_CAST")
                 val args = call.arguments as? Map<String, Any>
                 fun posId(fallback: String) = args?.get("posId") as? String ?: fallback
-                fun floor() = (args?.get("floor") as? Int) ?: 0
                 when (call.method) {
                     "initAdSdk"          -> { MyApplication.acceptPrivacyAndInitSdk(this); result.success(null) }
-                    "showSplashAd"       -> { adManager.showSplashAd(this, posId(AdConfig.SPLASH_POS_ID), floor()); result.success(null) }
+                    "showSplashAd"       -> { adManager.showSplashAd(this, posId(AdConfig.SPLASH_POS_ID)); result.success(null) }
                     "dismissSplashAd"    -> { adManager.dismissSplashAd(); result.success(null) }
-                    "loadRewardedAd"     -> { adManager.loadRewardedAd(this, posId(AdConfig.REWARDED_POS_ID), floor()); result.success(null) }
+                    "loadRewardedAd"     -> { adManager.loadRewardedAd(this, posId(AdConfig.REWARDED_POS_ID)); result.success(null) }
                     "showRewardedAd"     -> { adManager.showRewardedAd(this); result.success(null) }
-                    "showInterstitialAd"           -> { adManager.showInterstitialAd(this, posId(AdConfig.INTERSTITIAL_POS_ID), floor()); result.success(null) }
-                    "showFullScreenInterstitialAd" -> { adManager.showFullScreenInterstitialAd(this, posId(AdConfig.INTERSTITIAL_POS_ID), floor()); result.success(null) }
+                    "showInterstitialAd"           -> { adManager.showInterstitialAd(this, posId(AdConfig.INTERSTITIAL_POS_ID)); result.success(null) }
+                    "showFullScreenInterstitialAd" -> { adManager.showInterstitialAd(this, posId(AdConfig.INTERSTITIAL_POS_ID)); result.success(null) }
                     else                           -> result.notImplemented()
                 }
             }
