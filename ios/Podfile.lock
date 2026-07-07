@@ -2,9 +2,7 @@ PODS:
   - Flutter (1.0.0)
   - flutter_local_notifications (0.0.1):
     - Flutter
-  - GDTMobSDK (4.14.90):
-    - GDTMobSDK/GDTMobSDK (= 4.14.90)
-  - GDTMobSDK/GDTMobSDK (4.14.90)
+  - MangoAds (2.8.8)
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -19,21 +17,19 @@ PODS:
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - flutter_local_notifications (from `.symlinks/plugins/flutter_local_notifications/ios`)
-  - GDTMobSDK (~> 4.14.40)
+  - MangoAds (from `MangoAds`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - share_plus (from `.symlinks/plugins/share_plus/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
-
-SPEC REPOS:
-  trunk:
-    - GDTMobSDK
 
 EXTERNAL SOURCES:
   Flutter:
     :path: Flutter
   flutter_local_notifications:
     :path: ".symlinks/plugins/flutter_local_notifications/ios"
+  MangoAds:
+    :path: MangoAds
   path_provider_foundation:
     :path: ".symlinks/plugins/path_provider_foundation/darwin"
   share_plus:
@@ -46,12 +42,12 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   flutter_local_notifications: 395056b3175ba4f08480a7c5de30cd36d69827e4
-  GDTMobSDK: cb7162e527f2db41f97786f3fb6498544d5d10e7
+  MangoAds: c2274312e9e987986d7761ee2ddf093bb2349c10
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
   share_plus: 50da8cb520a8f0f65671c6c6a99b3617ed10a58a
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
   url_launcher_ios: 694010445543906933d732453a59da0a173ae33d
 
-PODFILE CHECKSUM: 8d6455d3ebf2db0c27850d36f4e71d520457b826
+PODFILE CHECKSUM: 1d01e8f980e303f345f2b3ed06aed833b1c5d17c
 
 COCOAPODS: 1.16.2

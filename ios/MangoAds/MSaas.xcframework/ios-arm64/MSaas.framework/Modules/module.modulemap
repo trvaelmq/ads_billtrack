@@ -1,0 +1,13 @@
+//
+//  module.modulemap
+//  MSaasAdapter
+//
+//  Created by YJoo on 2025/9/15.
+//
+
+framework module MSaas {
+  umbrella header "MSaas.h"
+
+  export *
+  module * { export * }
+}

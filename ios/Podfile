@@ -30,8 +30,8 @@ target 'Runner' do
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 
-  # 腾讯广告 GDT SDK
-  pod 'GDTMobSDK', '~> 4.14.40'
+  # 芒果聚合广告 SDK（本地包，含 GDT 渠道）
+  pod 'MangoAds', :path => 'MangoAds'
 
   target 'RunnerTests' do
     inherit! :search_paths
