@@ -19,13 +19,12 @@ import AppTrackingTransparency
         // ATT 权限不在此处请求：didFinishLaunching 阶段 App 仍是 inactive 状态，
         // 系统会静默丢弃弹窗。改为在 applicationDidBecomeActive 中请求（见下方）。
 
-        // 初始化 GDT SDK
-        GDTSDKConfig.initWithAppId(AdConfig.appId)
-        GDTSDKConfig.start { _, _ in }
-
         guard let controller = window?.rootViewController as? FlutterViewController else {
             return super.application(application, didFinishLaunchingWithOptions: launchOptions)
         }
+
+        // 初始化芒果聚合 SDK（需在 window 指定 rootViewController 之后）
+        SFAdSDKManager.registerAppId(AdConfig.appId)
 
         // PlatformView: Banner 广告注册
         let bannerFactory = BannerAdViewFactory(viewController: controller)
@@ -82,26 +81,22 @@ import AppTrackingTransparency
     ) {
         let args = call.arguments as? [String: Any]
         func posId(_ fallback: String) -> String { args?["posId"] as? String ?? fallback }
-        func floorArg() -> Int { args?["floor"] as? Int ?? 0 }
 
         switch call.method {
         case "showSplashAd":
-            AdManager.shared.loadSplashAd(posId: posId(AdConfig.splashPosId), floor: floorArg(), viewController: controller)
+            AdManager.shared.loadSplashAd(posId: posId(AdConfig.splashPosId), viewController: controller)
             result(nil)
         case "dismissSplashAd":
             AdManager.shared.dismissSplashAd()
             result(nil)
         case "loadRewardedAd":
-            AdManager.shared.loadRewardedAd(posId: posId(AdConfig.rewardedPosId), floor: floorArg(), viewController: controller)
+            AdManager.shared.loadRewardedAd(posId: posId(AdConfig.rewardedPosId), viewController: controller)
             result(nil)
         case "showRewardedAd":
             AdManager.shared.showRewardedAd(viewController: controller)
             result(nil)
-        case "showInterstitialAd":
-            AdManager.shared.loadInterstitialAd(posId: posId(AdConfig.interstitialPosId), floor: floorArg(), viewController: controller)
-            result(nil)
-        case "showFullScreenInterstitialAd":
-            AdManager.shared.loadFullScreenInterstitialAd(posId: posId(AdConfig.interstitialPosId), floor: floorArg(), viewController: controller)
+        case "showInterstitialAd", "showFullScreenInterstitialAd":
+            AdManager.shared.showInterstitialAd(posId: posId(AdConfig.interstitialPosId), viewController: controller)
             result(nil)
         default:
             result(FlutterMethodNotImplemented)
