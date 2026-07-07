@@ -64,7 +64,7 @@ class AdManager: NSObject {
         guard rewardedReady, let manager = rewardedManager else {
             sendEvent("rewarded", event: "not_ready"); return
         }
-        manager.showRewardVideoAd(withController: viewController)
+        manager.showRewardVideoAd(with: viewController)
     }
 
     // ── Interstitial ──────────────────────────────────────────────
@@ -119,7 +119,7 @@ extension AdManager: SFRewardVideoDelegate {
         rewardedReady = true
         sendEvent("rewarded", event: "loaded")
     }
-    func rewardedVideoDidFail(withError error: Error) {
+    func rewardedVideoDidFailWithError(_ error: Error) {
         rewardedReady = false
         sendEvent("rewarded", event: "failed", msg: error.localizedDescription)
     }
@@ -129,7 +129,7 @@ extension AdManager: SFRewardVideoDelegate {
     func rewardedVideoDidClick() {
         sendEvent("rewarded", event: "clicked")
     }
-    func rewardedVideoDidRewardEffective(withExtra extra: [AnyHashable: Any]?) {
+    func rewardedVideoDidRewardEffective(withExtra extra: [AnyHashable: Any]) {
         sendEvent("rewarded", event: "rewarded")
     }
     func rewardedVideoDidClose() {
