@@ -10,8 +10,7 @@ class BannerAdViewFactory: NSObject, FlutterPlatformViewFactory {
     func create(withFrame frame: CGRect, viewIdentifier viewId: Int64, arguments args: Any?) -> FlutterPlatformView {
         let params = args as? [String: Any]
         let posId = params?["posId"] as? String ?? AdConfig.bannerPosId
-        let floor = params?["floor"] as? Int ?? 0
-        return BannerAdPlatformView(frame: frame, posId: posId, floor: floor, viewController: viewController ?? UIViewController())
+        return BannerAdPlatformView(frame: frame, posId: posId, viewController: viewController ?? UIViewController())
     }
 
     func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
@@ -22,8 +21,8 @@ class BannerAdViewFactory: NSObject, FlutterPlatformViewFactory {
 class BannerAdPlatformView: NSObject, FlutterPlatformView {
     private let container: BannerContainerView
 
-    init(frame: CGRect, posId: String, floor: Int, viewController: UIViewController) {
-        container = BannerContainerView(frame: frame, posId: posId, floor: floor, viewController: viewController)
+    init(frame: CGRect, posId: String, viewController: UIViewController) {
+        container = BannerContainerView(frame: frame, posId: posId, viewController: viewController)
         super.init()
     }
 
@@ -33,13 +32,11 @@ class BannerAdPlatformView: NSObject, FlutterPlatformView {
 // 用自定义 UIView，在 layoutSubviews 时才创建 banner，保证宽度不为 0
 class BannerContainerView: UIView {
     private let posId: String
-    private let floor: Int
     private weak var viewController: UIViewController?
-    private var bannerView: GDTUnifiedBannerView?
+    private var bannerManager: SFBannerManager?
 
-    init(frame: CGRect, posId: String, floor: Int, viewController: UIViewController) {
+    init(frame: CGRect, posId: String, viewController: UIViewController) {
         self.posId = posId
-        self.floor = floor
         self.viewController = viewController
         super.init(frame: frame)
     }
@@ -48,36 +45,29 @@ class BannerContainerView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        guard bannerView == nil, bounds.width > 0, bounds.height > 0,
+        guard bannerManager == nil, bounds.width > 0, bounds.height > 0,
               let vc = viewController else { return }
 
-        let banner = GDTUnifiedBannerView(
-            frame: CGRect(x: 0, y: 0, width: bounds.width, height: bounds.height),
-            placementId: posId,
-            viewController: vc
-        )
-        banner.autoSwitchInterval = 30
-        banner.delegate = self
-        banner.loadAdAndShow()
-        addSubview(banner)
-        bannerView = banner
+        let manager = SFBannerManager()
+        manager.mediaId = posId
+        manager.size = bounds.size
+        manager.showAdController = vc
+        manager.delegate = self
+        bannerManager = manager
+        manager.loadAdData()
         debugPrint("[Banner] 开始加载，size=\(bounds.width)x\(bounds.height)")
     }
 }
 
-extension BannerContainerView: GDTUnifiedBannerViewDelegate {
-    func unifiedBannerViewDidLoad(_ unifiedBannerView: GDTUnifiedBannerView) {
-        // 每次自动刷新都会回调，重新读价决定显隐
-        switch gdtEvaluateBid(eCPM: unifiedBannerView.eCPM(), floor: floor, ad: unifiedBannerView) {
-        case .lost:
-            unifiedBannerView.isHidden = true
-            debugPrint("[Banner] 竞败 ecpm=\(unifiedBannerView.eCPM()) floor=\(floor)，隐藏")
-        case .won, .skipped:
-            unifiedBannerView.isHidden = false
-            debugPrint("[Banner] 加载成功 ecpm=\(unifiedBannerView.eCPM()) floor=\(floor)")
-        }
+extension BannerContainerView: SFBannerDelegate {
+    func bannerAdDidLoad() {
+        bannerManager?.showBannerAd(with: self)
+        debugPrint("[Banner] 加载成功")
     }
-    func unifiedBannerViewFailedToLoad(_ unifiedBannerView: GDTUnifiedBannerView, withError error: NSError) {
-        debugPrint("[Banner] 加载失败 code=\(error.code) msg=\(error.localizedDescription)")
+    func bannerAdDidFailed(_ error: Error) {
+        debugPrint("[Banner] 加载失败 \(error.localizedDescription)")
+    }
+    func bannerAdDidClose() {
+        subviews.forEach { $0.removeFromSuperview() }
     }
 }
