@@ -2,73 +2,120 @@ package com.jileduo.finance
 
 import android.app.Activity
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
-import com.qq.e.ads.nativ.ADSize
-import com.qq.e.ads.nativ.NativeExpressAD
-import com.qq.e.ads.nativ.NativeExpressADView
-import com.qq.e.comm.util.AdError
+import android.widget.ImageView
+import android.widget.TextView
 import io.flutter.plugin.common.StandardMessageCodec
 import io.flutter.plugin.platform.PlatformView
 import io.flutter.plugin.platform.PlatformViewFactory
+import org.mgy.april.MgFlowManager
+import org.mgy.april.interfaces.MgNativeInfo
+import org.mgy.april.interfaces.MgNativePrepareInfo
+import org.mgy.april.interfaces.OnNativeLoadAdListener
+import java.lang.ref.WeakReference
+import java.net.URL
+import java.util.concurrent.Executors
 
 class NativeExpressAdViewFactory(private val activity: Activity) :
     PlatformViewFactory(StandardMessageCodec.INSTANCE) {
 
     override fun create(context: Context, viewId: Int, args: Any?): PlatformView {
         val params = args as? Map<*, *>
-        val posId  = params?.get("posId")  as? String ?: AdConfig.BANNER_POS_ID
-        val width  = params?.get("width")  as? Int    ?: ADSize.FULL_WIDTH
-        val height = params?.get("height") as? Int    ?: ADSize.AUTO_HEIGHT
-        val floor  = params?.get("floor")  as? Int    ?: 0
-        return NativeExpressAdPlatformView(activity, posId, width, height, floor)
+        val posId  = params?.get("posId") as? String ?: AdConfig.DETAIL_BANNER_POS_ID
+        return NativeExpressAdPlatformView(activity, posId)
     }
 }
 
+// 芒果信息流为自渲染：SDK 返回 MgNativeInfo 数据，绑定到自建布局后 prepare 注册点击
 class NativeExpressAdPlatformView(
     private val activity: Activity,
-    posId: String,
-    width: Int,
-    height: Int,
-    private val floor: Int
+    posId: String
 ) : PlatformView {
 
     private val container = FrameLayout(activity)
+    private var nativeInfo: MgNativeInfo? = null
+
+    companion object {
+        private val imageExecutor = Executors.newCachedThreadPool()
+    }
 
     init {
-        val adSize = ADSize(ADSize.FULL_WIDTH, ADSize.AUTO_HEIGHT)
-        val ad = NativeExpressAD(
-            activity, adSize, posId,
-            object : NativeExpressAD.NativeExpressADListener {
-                override fun onNoAD(error: AdError?) {
-                    Log.e("NativeExpress", "加载失败 code=${error?.errorCode} msg=${error?.errorMsg}")
+        MyApplication.runWhenReady {
+            val adView = View.inflate(activity, R.layout.mg_native_ad, null)
+            MgFlowManager.getInstance().loadFlow(activity, posId, adView, object : OnNativeLoadAdListener {
+                override fun onNativeLoaded(adInfo: MgNativeInfo?) {
+                    adInfo ?: return
+                    nativeInfo = adInfo
+                    activity.runOnUiThread { bindAndShow(adInfo) }
                 }
-                override fun onADLoaded(views: List<NativeExpressADView>) {
-                    val adView = views.firstOrNull() ?: return
-                    val e = adView.getECPM()
-                    when (Bidding.evaluate(e, floor, adView)) {
-                        BidResult.LOST -> Log.e("NativeExpress", "竞败 ecpm=$e floor=$floor，不展示")
-                        else -> { adView.render(); Log.d("NativeExpress", "加载成功 ecpm=$e floor=$floor，开始 render") }
-                    }
+                override fun onNativeAdFail(errorInfo: String?) {
+                    Log.e("MG_AD", "flow onNativeAdFail: $errorInfo")
                 }
-                override fun onRenderSuccess(adView: NativeExpressADView) {
-                    activity.runOnUiThread { container.addView(adView) }
-                    Log.d("NativeExpress", "render 成功")
-                }
-                override fun onRenderFail(adView: NativeExpressADView) {
-                    Log.e("NativeExpress", "render 失败")
-                }
-                override fun onADExposure(adView: NativeExpressADView)        {}
-                override fun onADClicked(adView: NativeExpressADView)         {}
-                override fun onADClosed(adView: NativeExpressADView)          {}
-                override fun onADLeftApplication(adView: NativeExpressADView) {}
-            }
+            })
+        }
+    }
+
+    private fun bindAndShow(adInfo: MgNativeInfo) {
+        val adRoot = adInfo.adMediaView ?: return
+        (adRoot.parent as? ViewGroup)?.removeView(adRoot)
+        container.removeAllViews()
+        container.addView(
+            adRoot,
+            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         )
-        ad.loadAD(1)
-        Log.d("NativeExpress", "开始加载 posId=$posId size=${width}x${height}")
+
+        val title  = adRoot.findViewById<TextView>(R.id.mg_title)
+        val desc   = adRoot.findViewById<TextView>(R.id.mg_desc)
+        val action = adRoot.findViewById<TextView>(R.id.mg_action)
+        val pic    = adRoot.findViewById<ImageView>(R.id.mg_image)
+        val logo   = adRoot.findViewById<ImageView>(R.id.mg_ad_logo)
+        val close  = adRoot.findViewById<View>(R.id.mg_close)
+
+        title?.text = adInfo.title ?: ""
+        desc?.text = adInfo.description ?: ""
+        action?.text = adInfo.callToAction?.takeIf { it.isNotEmpty() } ?: "查看详情"
+
+        val imgUrl = adInfo.mainImageUrl?.takeIf { it.isNotEmpty() }
+            ?: MgFlowManager.findFirstNonNull(adInfo.imageUrlList)
+        if (pic != null && !imgUrl.isNullOrEmpty()) loadImage(imgUrl, pic)
+
+        if (logo != null) {
+            when {
+                adInfo.adLogo != null -> logo.setImageBitmap(adInfo.adLogo)
+                !adInfo.adLogoUrl.isNullOrEmpty() -> loadImage(adInfo.adLogoUrl!!, logo)
+            }
+        }
+        close?.setOnClickListener { container.visibility = View.GONE }
+
+        val prepareInfo = MgNativePrepareInfo().apply {
+            setActivityRef(WeakReference(activity))
+            close?.let { setCloseView(it) }
+            action?.let { setCtaViewList(it) }
+            pic?.let { setImageViewList(it) }
+            setClickViewList(adRoot)
+        }
+        adInfo.prepare(prepareInfo)
+    }
+
+    /** 轻量网络图片加载，避免为广告引入 Glide */
+    private fun loadImage(url: String, target: ImageView) {
+        imageExecutor.execute {
+            try {
+                val bmp = URL(url).openStream().use { BitmapFactory.decodeStream(it) }
+                activity.runOnUiThread { target.setImageBitmap(bmp) }
+            } catch (e: Throwable) {
+                Log.e("MG_AD", "loadImage failed: $e")
+            }
+        }
     }
 
     override fun getView(): View = container
-    override fun dispose()      {}
+    override fun dispose() {
+        nativeInfo?.release()
+        nativeInfo = null
+    }
 }
