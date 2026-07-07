@@ -15,11 +15,6 @@
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
 
-        <!-- GDT App ID -->
-        <meta-data
-            android:name="GDTAPPID"
-            android:value="1216276718" />
-
         <activity
             android:name=".MainActivity"
             android:exported="true"
