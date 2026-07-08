@@ -2,7 +2,6 @@ import 'package:ads_billtrack/widgets/banner_ad_widget.dart';
 import 'package:ads_billtrack/widgets/native_express_ad_widget.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/ad_config.dart';
@@ -84,31 +83,18 @@ class StatsView extends GetView<StatsController> {
               _BarChartCard(last6: last6),
               const SizedBox(height: 4),
               Expanded(
-                child:
-                    defaultTargetPlatform == TargetPlatform.iOS
-                        ? LayoutBuilder(
-                          builder:
-                              (context, constraints) => Center(
-                                child: SizedBox(
-                                  width: constraints.maxWidth + 32,
-                                  child: NativeExpressAdWidget(
-                                    height: constraints.maxHeight,
-                                    posId: AdConfig.detailBannerPosId,
-                                  ),
-                                ),
-                              ),
-                        )
-                        : Container(
-                          margin: const EdgeInsets.only(top: 20),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.all(Radius.circular(8)),
-                          ),
-                          child: BannerAdWidget(
-                            height: 60,
+                child: LayoutBuilder(
+                  builder:
+                      (context, constraints) => Center(
+                        child: SizedBox(
+                          width: constraints.maxWidth + 32,
+                          child: NativeExpressAdWidget(
+                            height: constraints.maxHeight,
                             posId: AdConfig.detailBannerPosId,
                           ),
                         ),
+                      ),
+                ),
               ),
               const SizedBox(height: 12),
             ],

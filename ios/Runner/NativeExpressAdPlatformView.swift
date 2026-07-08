@@ -9,7 +9,7 @@ class NativeExpressAdViewFactory: NSObject, FlutterPlatformViewFactory {
 
     func create(withFrame frame: CGRect, viewIdentifier viewId: Int64, arguments args: Any?) -> FlutterPlatformView {
         let params = args as? [String: Any]
-        let posId  = params?["posId"]  as? String  ?? AdConfig.interstitialPosId
+        let posId  = params?["posId"]  as? String  ?? AdConfig.detailBannerPosId
         let height = params?["height"] as? CGFloat ?? frame.height
         return NativeExpressAdPlatformView(
             frame: frame, posId: posId, adHeight: height,
