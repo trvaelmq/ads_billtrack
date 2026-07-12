@@ -1,0 +1,6 @@
+framework module AnyThinkMediaVideo {
+  umbrella header "AnyThinkMediaVideo.h"
+  export *
+
+  module * { export * }
+}

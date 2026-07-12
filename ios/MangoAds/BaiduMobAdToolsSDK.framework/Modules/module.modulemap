@@ -1,0 +1,6 @@
+framework module BaiduMobAdToolsSDK {
+  umbrella header "BaiduMobAdToolsSDK.h"
+  export *
+
+  module * { export * }
+}
