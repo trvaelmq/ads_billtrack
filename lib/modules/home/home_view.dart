@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import '../../core/constants/ad_config.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/bill_service.dart';
@@ -12,6 +13,7 @@ import '../../data/models/bill_record.dart';
 import '../../data/models/recurring_rule.dart';
 import '../../router/app_pages.dart';
 import '../../widgets/animated_counter.dart';
+import '../../widgets/banner_ad_widget.dart';
 import '../health_score/health_score_view.dart';
 
 class HomeView extends StatelessWidget {
@@ -84,6 +86,11 @@ class HomeView extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.only(top: 16, bottom: 24),
                 children: [
+                  // 首页头部横幅广告（用首页专属广告位，避免与统计页复用同一 posId 冲突）
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: BannerAdWidget(height: 60, posId: AdConfig.bannerHomePosId),
+                  ),
                   // 到期账单提醒 Banner
                   Obx(() {
                     final dueRules = RecurringService.to.dueRules;
