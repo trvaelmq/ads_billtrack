@@ -1,7 +1,6 @@
 import 'dart:io';
 
 class AdConfig {
-  // TODO(芒果平台): 以下均为占位值,ID 申请下发后替换
   // ── iOS(Mediatom)广告 ID ─────────────────────────────────────
   static const String _iosAppId              = '4582335cc3af56be'; // 智探眼_iOS
   static const String _iosSplashPosId        = '99b82c48067f2084'; // 智探眼_iOS-开屏
