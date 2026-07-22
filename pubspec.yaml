@@ -2,7 +2,7 @@ name: ads_billtrack
 description: "智探眼 — 财务健康体检与深度分析"
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.4+6
 
 environment:
   sdk: ^3.7.2
@@ -17,6 +17,7 @@ dependencies:
   shared_preferences: ^2.3.2
   fl_chart: ^0.69.0
   uuid: ^4.4.2
+  crypto: ^3.0.3
   intl: ^0.19.0
   url_launcher: ^6.3.1
   flutter_local_notifications: ^18.0.0
