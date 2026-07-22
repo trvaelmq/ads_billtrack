@@ -15,6 +15,7 @@ class StorageService {
   static late Box<AdRecord>   _adBox;
   static late Box<RecurringRule> _recurringBox;
   static late Box<AccountRecord> _accountBox;
+  // 非私有:main.dart 需要把这个 Box 直接传给 RiskGateService 构造函数
   static late Box<RiskEventRecord> riskEventQueueBox;
   static late SharedPreferences _prefs;
 
@@ -230,6 +231,7 @@ class StorageService {
     await _adBox.clear();
     await _recurringBox.clear();
     await _accountBox.clear();
+    await riskEventQueueBox.clear();
     await _prefs.clear();
   }
 }
