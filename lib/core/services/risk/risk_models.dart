@@ -23,6 +23,12 @@ RiskAction _actionFromString(String? raw) {
   }
 }
 
+/// 从 Map 中防御性地读取字符串字段:类型不符或缺失一律返回 null,不抛异常。
+String? _str(Map<String, dynamic> json, String key) {
+  final v = json[key];
+  return v is String ? v : null;
+}
+
 /// POST /risk/decide 响应体 data 部分。
 class DecisionResult {
   final RiskAction action;
@@ -42,13 +48,15 @@ class DecisionResult {
   });
 
   factory DecisionResult.fromJson(Map<String, dynamic> json) => DecisionResult(
-        action: _actionFromString(json['action'] as String?),
+        action: _actionFromString(_str(json, 'action')),
         confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
-        confidenceLevel: json['confidenceLevel'] as String? ?? 'LOW',
-        hitRuleIds:
-            (json['hitRuleIds'] as List?)?.cast<String>() ?? const <String>[],
-        requestId: json['requestId'] as String? ?? '',
-        reason: json['reason'] as String? ?? 'NORMAL',
+        confidenceLevel: _str(json, 'confidenceLevel') ?? 'LOW',
+        hitRuleIds: (json['hitRuleIds'] as List?)
+                ?.whereType<String>()
+                .toList() ??
+            const <String>[],
+        requestId: _str(json, 'requestId') ?? '',
+        reason: _str(json, 'reason') ?? 'NORMAL',
       );
 
   /// 网络异常/超时/签名失败时的本地降级结果。
@@ -70,8 +78,8 @@ class BlacklistItem {
   const BlacklistItem({required this.type, required this.value});
 
   factory BlacklistItem.fromJson(Map<String, dynamic> json) => BlacklistItem(
-        type: json['type'] as String? ?? '',
-        value: json['value'] as String? ?? '',
+        type: _str(json, 'type') ?? '',
+        value: _str(json, 'value') ?? '',
       );
 
   Map<String, dynamic> toJson() => {'type': type, 'value': value};
