@@ -40,7 +40,18 @@ class RiskGateService extends GetxService {
   }
 
   Future<RiskGateService> init() async {
-    _deviceId ??= await _deviceIdProvider();
+    if (_deviceId == null) {
+      try {
+        _deviceId = await _deviceIdProvider();
+        if (_deviceId == null) {
+          debugPrint(
+              '[RiskGate] deviceId is null, risk gate will fail-open until next init()');
+        }
+      } catch (e) {
+        debugPrint(
+            '[RiskGate] deviceId fetch failed, risk gate will fail-open until next init(): $e');
+      }
+    }
     await _blacklist.load();
     await _syncBlacklist();
     _flushTimer?.cancel();
