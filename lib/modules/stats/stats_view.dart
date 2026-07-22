@@ -6,7 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/ad_config.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/constants/risk_config.dart';
 import '../../core/services/ad_service.dart';
+import '../../core/services/risk/risk_gate_service.dart';
+import '../../core/services/risk/risk_models.dart';
 import '../../core/theme/app_theme.dart';
 import 'stats_controller.dart';
 
@@ -47,11 +50,14 @@ class StatsView extends GetView<StatsController> {
       body: Obx(() {
         final expByCat = bill.expenseByCategory;
         final last6 = bill.last6MonthsStats;
-        return Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(0, 12, 0, 16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Align(
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
                 alignment: Alignment.centerRight,
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -78,24 +84,17 @@ class StatsView extends GetView<StatsController> {
                 child: const BannerAdWidget(height: 60),
               ),
               const SizedBox(height: 4),
-              _ExpensePieChart(expByCat: expByCat),
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                child: _ExpensePieChart(expByCat: expByCat),
+              ), 
               const SizedBox(height: 4),
-              _BarChartCard(last6: last6),
-              const SizedBox(height: 4),
-              Expanded(
-                child: LayoutBuilder(
-                  builder:
-                      (context, constraints) => Center(
-                        child: SizedBox(
-                          width: constraints.maxWidth + 32,
-                          child: NativeExpressAdWidget(
-                            height: constraints.maxHeight,
-                            posId: AdConfig.detailBannerPosId,
-                          ),
-                        ),
-                      ),
-                ),
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                child: _BarChartCard(last6: last6),
               ),
+              const SizedBox(height: 4),
+              NativeExpressAdWidget(posId: AdConfig.detailBannerPosId),
               const SizedBox(height: 12),
             ],
           ),
@@ -118,15 +117,42 @@ class _ExpensePieChartState extends State<_ExpensePieChart> {
   double _scale = 1.0;
 
   // 点击「支出构成」触发：随机延迟弹插屏 → 激励 → 跳记录页 → 返回再插屏
-  void _triggerAdFlow() {
+  Future<void> _triggerAdFlow() async {
     final ad = AdService.to;
     // 冷却中：提示剩余时间，不进入广告流程（看完一个需冷却才能看下一个）
     if (ad.cooldownRemaining.value > 0) {
       _showCooldownDialog(ad);
       return;
     }
+    // 风控预检：BLOCK/THROTTLE 直接提示，避免弹出插屏后激励却看不了
+    final action = await RiskGateService.to.decide(
+      adSlotId: AdConfig.rewardedPosId,
+      adFormat: RiskAdFormat.reward,
+    );
+    if (action.isBlocked) {
+      _showDeniedDialog('观看太频繁啦，请稍后再试');
+      return;
+    }
     if (!ad.isRewardedReady.value) ad.loadRewardedAd(); // 兜底加载
     ad.startRewardedAdFlow();
+  }
+
+  void _showDeniedDialog(String message) {
+    Get.dialog(
+      CupertinoAlertDialog(
+        title: const Text('提示'),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(message),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Get.back(),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showCooldownDialog(AdService ad) {
