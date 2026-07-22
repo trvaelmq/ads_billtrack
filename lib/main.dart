@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'core/services/account_service.dart';
+import 'core/services/risk/risk_gate_service.dart';
 import 'core/services/ad_service.dart';
 import 'core/services/bill_service.dart';
 import 'core/services/recurring_service.dart';
@@ -21,6 +22,10 @@ void main() async {
   await Get.putAsync(() async => RecurringService());
   // permanent: ApiClient 非 GetxService,防止被 SmartManagement 回收
   Get.put(ApiClient(), permanent: true);
+  await Get.putAsync(() => RiskGateService(
+        api: Get.find<ApiClient>(),
+        eventBox: StorageService.riskEventQueueBox,
+      ).init());
   await Get.putAsync(() async => AuthService(Get.find<ApiClient>()));
   // 静默校验本地 token，不阻塞启动
   AuthService.to.validateOnLaunch();
