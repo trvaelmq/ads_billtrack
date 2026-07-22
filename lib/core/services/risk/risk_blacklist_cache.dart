@@ -1,9 +1,14 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../constants/risk_config.dart';
 import 'risk_models.dart';
 
 /// 黑名单本地缓存:仅做快速过滤优化,最终拦截以服务端 /risk/decide 为准。
+///
+/// 注意:当前后端同步协议只支持增量新增,没有删除语义(见设计文档 §6),
+/// 本地集合只增不减。如果黑名单规模长期增长导致 SharedPreferences 存储/
+/// 序列化开销变得不可接受,需要评估换成更适合大数据量的本地存储(如 sqlite)。
 class RiskBlacklistCache {
   static const _kVersion = 'risk_blacklist_version';
   static const _kItems = 'risk_blacklist_items';
@@ -49,10 +54,7 @@ class RiskBlacklistCache {
     required List<BlacklistItem> items,
   }) async {
     _keys.addAll(items.map((e) => e.key));
-    _version = newVersion;
-    _lastSyncedAt = DateTime.now();
-    await _prefs.setInt(_kVersion, _version);
-    await _prefs.setInt(_kLastSyncedAt, _lastSyncedAt!.millisecondsSinceEpoch);
+    final now = DateTime.now();
     await _prefs.setString(
       _kItems,
       jsonEncode(_keys.map((k) {
@@ -60,9 +62,14 @@ class RiskBlacklistCache {
         return {'type': parts.first, 'value': parts.sublist(1).join(':')};
       }).toList()),
     );
+    await _prefs.setInt(_kLastSyncedAt, now.millisecondsSinceEpoch);
+    await _prefs.setInt(_kVersion, newVersion);
+    _lastSyncedAt = now;
+    _version = newVersion;
   }
 
   /// 仅供测试:直接设置 lastSyncedAt 以模拟缓存过期，不落盘。
+  @visibleForTesting
   Future<void> debugSetLastSyncedAt(DateTime time) async {
     _lastSyncedAt = time;
   }
