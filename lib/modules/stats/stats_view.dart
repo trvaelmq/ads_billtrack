@@ -115,26 +115,38 @@ class _ExpensePieChart extends StatefulWidget {
 
 class _ExpensePieChartState extends State<_ExpensePieChart> {
   double _scale = 1.0;
+  bool _triggering = false;
 
   // 点击「支出构成」触发：随机延迟弹插屏 → 激励 → 跳记录页 → 返回再插屏
   Future<void> _triggerAdFlow() async {
-    final ad = AdService.to;
-    // 冷却中：提示剩余时间，不进入广告流程（看完一个需冷却才能看下一个）
-    if (ad.cooldownRemaining.value > 0) {
-      _showCooldownDialog(ad);
-      return;
+    if (_triggering) return;
+    _triggering = true;
+    try {
+      final ad = AdService.to;
+      // 冷却中：提示剩余时间，不进入广告流程（看完一个需冷却才能看下一个）
+      if (ad.cooldownRemaining.value > 0) {
+        _showCooldownDialog(ad);
+        return;
+      }
+      // 风控预检：BLOCK/THROTTLE 直接提示，避免弹出插屏后激励却看不了
+      // 注意：这里和 AdService.loadRewardedAd() 内部都会各自调一次 /risk/decide
+      // (每次点击对应 2 次 REQUEST 事件),是为了在这里能立即弹出拦截提示、
+      // 不必等插屏弹出后激励才发现不可用。已知会让同一次点击的请求计数翻倍，
+      // 如果后端按 REQUEST 事件计数做频控，需要后端侧对短时间内的重复 request 去重，
+      // 或者未来考虑去掉其中一次调用。
+      final action = await RiskGateService.to.decide(
+        adSlotId: AdConfig.rewardedPosId,
+        adFormat: RiskAdFormat.reward,
+      );
+      if (action.isBlocked) {
+        _showDeniedDialog('观看太频繁啦，请稍后再试');
+        return;
+      }
+      if (!ad.isRewardedReady.value) ad.loadRewardedAd(); // 兜底加载
+      ad.startRewardedAdFlow();
+    } finally {
+      _triggering = false;
     }
-    // 风控预检：BLOCK/THROTTLE 直接提示，避免弹出插屏后激励却看不了
-    final action = await RiskGateService.to.decide(
-      adSlotId: AdConfig.rewardedPosId,
-      adFormat: RiskAdFormat.reward,
-    );
-    if (action.isBlocked) {
-      _showDeniedDialog('观看太频繁啦，请稍后再试');
-      return;
-    }
-    if (!ad.isRewardedReady.value) ad.loadRewardedAd(); // 兜底加载
-    ad.startRewardedAdFlow();
   }
 
   void _showDeniedDialog(String message) {

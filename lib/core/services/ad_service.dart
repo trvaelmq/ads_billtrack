@@ -28,6 +28,7 @@ class AdService extends GetxService {
   bool _pendingHistoryBack = false; // 激励结束后跳历史，返回时弹插屏
   bool historyBackLocked = false; // 历史页返回锁，锁住期间忽略所有返回
   bool _rewardedFlowInProgress = false; // 激励流程进行中，忽略重复点击
+  bool _rewardedLoadInFlight = false; // 激励加载进行中，防止并发重复调用
 
   final _splashDone = Completer<void>();
   Future<void> get splashDone => _splashDone.future;
@@ -77,21 +78,27 @@ class AdService extends GetxService {
   }
 
   Future<void> loadRewardedAd() async {
-    isRewardedReady.value = false;
-    final action = await RiskGateService.to.decide(
-      adSlotId: AdConfig.rewardedPosId,
-      adFormat: RiskAdFormat.reward,
-    );
-    if (action.isBlocked) {
-      debugPrint('[AdService] loadRewardedAd blocked by risk gate: $action');
-      return;
-    }
+    if (_rewardedLoadInFlight) return;
+    _rewardedLoadInFlight = true;
     try {
-      await _method.invokeMethod('loadRewardedAd', {
-        'posId': AdConfig.rewardedPosId,
-      });
-    } catch (e) {
-      debugPrint('[AdService] loadRewardedAd error: $e');
+      isRewardedReady.value = false;
+      final action = await RiskGateService.to.decide(
+        adSlotId: AdConfig.rewardedPosId,
+        adFormat: RiskAdFormat.reward,
+      );
+      if (action.isBlocked) {
+        debugPrint('[AdService] loadRewardedAd blocked by risk gate: $action');
+        return;
+      }
+      try {
+        await _method.invokeMethod('loadRewardedAd', {
+          'posId': AdConfig.rewardedPosId,
+        });
+      } catch (e) {
+        debugPrint('[AdService] loadRewardedAd error: $e');
+      }
+    } finally {
+      _rewardedLoadInFlight = false;
     }
   }
 
@@ -207,12 +214,20 @@ class AdService extends GetxService {
         loadRewardedAd();
         break;
       case 'rewarded.shown':
-        RiskGateService.to
-            .reportEvent(adFormat: RiskAdFormat.reward, eventType: RiskEventType.impression);
+        try {
+          RiskGateService.to.reportEvent(
+              adFormat: RiskAdFormat.reward, eventType: RiskEventType.impression);
+        } catch (e) {
+          debugPrint('[AdService] reportEvent(rewarded.shown) error: $e');
+        }
         break;
       case 'rewarded.clicked':
-        RiskGateService.to
-            .reportEvent(adFormat: RiskAdFormat.reward, eventType: RiskEventType.click);
+        try {
+          RiskGateService.to.reportEvent(
+              adFormat: RiskAdFormat.reward, eventType: RiskEventType.click);
+        } catch (e) {
+          debugPrint('[AdService] reportEvent(rewarded.clicked) error: $e');
+        }
         break;
 
       // 激励视频看完：记录观看 + 启动冷却（不在这里 reload，统一在 closed 里）
@@ -233,21 +248,37 @@ class AdService extends GetxService {
         if (!_splashDone.isCompleted) _splashDone.complete();
         break;
       case 'splash.shown':
-        RiskGateService.to
-            .reportEvent(adFormat: RiskAdFormat.splash, eventType: RiskEventType.impression);
+        try {
+          RiskGateService.to.reportEvent(
+              adFormat: RiskAdFormat.splash, eventType: RiskEventType.impression);
+        } catch (e) {
+          debugPrint('[AdService] reportEvent(splash.shown) error: $e');
+        }
         break;
       case 'splash.clicked':
-        RiskGateService.to
-            .reportEvent(adFormat: RiskAdFormat.splash, eventType: RiskEventType.click);
+        try {
+          RiskGateService.to.reportEvent(
+              adFormat: RiskAdFormat.splash, eventType: RiskEventType.click);
+        } catch (e) {
+          debugPrint('[AdService] reportEvent(splash.clicked) error: $e');
+        }
         break;
 
       case 'interstitial.shown':
-        RiskGateService.to.reportEvent(
-            adFormat: RiskAdFormat.interstitial, eventType: RiskEventType.impression);
+        try {
+          RiskGateService.to.reportEvent(
+              adFormat: RiskAdFormat.interstitial, eventType: RiskEventType.impression);
+        } catch (e) {
+          debugPrint('[AdService] reportEvent(interstitial.shown) error: $e');
+        }
         break;
       case 'interstitial.clicked':
-        RiskGateService.to
-            .reportEvent(adFormat: RiskAdFormat.interstitial, eventType: RiskEventType.click);
+        try {
+          RiskGateService.to.reportEvent(
+              adFormat: RiskAdFormat.interstitial, eventType: RiskEventType.click);
+        } catch (e) {
+          debugPrint('[AdService] reportEvent(interstitial.clicked) error: $e');
+        }
         break;
 
       // 插屏关闭：前置 → 延迟300ms再弹激励；后置 → 解锁并真正返回
