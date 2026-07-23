@@ -27,8 +27,12 @@ class _NativeExpressAdWidgetState extends State<NativeExpressAdWidget> {
         final h = (call.arguments as num).toDouble();
         if (mounted && h >= 0 && h != _height) setState(() => _height = h);
       } else if (call.method == 'clicked') {
-        RiskGateService.to
-            .reportEvent(adFormat: RiskAdFormat.feed, eventType: RiskEventType.click);
+        try {
+          RiskGateService.to
+              .reportEvent(adFormat: RiskAdFormat.feed, eventType: RiskEventType.click);
+        } catch (e) {
+          debugPrint('[NativeExpressAdWidget] reportEvent(clicked) error: $e');
+        }
       }
     });
   }

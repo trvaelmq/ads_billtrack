@@ -25,8 +25,12 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
         final h = (call.arguments as num).toDouble();
         if (mounted && h >= 0 && h != _height) setState(() => _height = h);
       } else if (call.method == 'clicked') {
-        RiskGateService.to
-            .reportEvent(adFormat: RiskAdFormat.banner, eventType: RiskEventType.click);
+        try {
+          RiskGateService.to
+              .reportEvent(adFormat: RiskAdFormat.banner, eventType: RiskEventType.click);
+        } catch (e) {
+          debugPrint('[BannerAdWidget] reportEvent(clicked) error: $e');
+        }
       }
     });
   }
