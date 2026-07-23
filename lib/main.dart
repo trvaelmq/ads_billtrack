@@ -17,15 +17,17 @@ void main() async {
   await StorageService.init();
   await NotificationService.init();
   await Get.putAsync(() async => AccountService());
-  await Get.putAsync(() async => AdService());
-  await Get.putAsync(() async => BillService());
-  await Get.putAsync(() async => RecurringService());
   // permanent: ApiClient 非 GetxService,防止被 SmartManagement 回收
   Get.put(ApiClient(), permanent: true);
+  // RiskGateService 必须在 AdService 之前注册完成：AdService.onInit() 会同步触发
+  // loadRewardedAd()，其内部会调用 RiskGateService.to，若此时还未注册会抛异常。
   await Get.putAsync(() => RiskGateService(
         api: Get.find<ApiClient>(),
         eventBox: StorageService.riskEventQueueBox,
       ).init());
+  await Get.putAsync(() async => AdService());
+  await Get.putAsync(() async => BillService());
+  await Get.putAsync(() async => RecurringService());
   await Get.putAsync(() async => AuthService(Get.find<ApiClient>()));
   // 静默校验本地 token，不阻塞启动
   AuthService.to.validateOnLaunch();
