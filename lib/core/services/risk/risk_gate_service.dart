@@ -74,7 +74,8 @@ class RiskGateService extends GetxService {
       );
       final data = res.data;
       if (data == null) {
-        debugPrint('[RiskGate] blacklist sync: empty response data, keep old cache');
+        debugPrint(
+            '[RiskGate] blacklist sync: empty response data (code=${res.code}, message=${res.message}), keep old cache');
         return;
       }
       final items = (data['items'] as List? ?? [])
@@ -121,7 +122,8 @@ class RiskGateService extends GetxService {
       );
       final data = res.data;
       if (data == null) {
-        debugPrint('[RiskGate] decide: empty response data -> fail-open pass');
+        debugPrint(
+            '[RiskGate] decide: empty response data (code=${res.code}, message=${res.message}) -> fail-open pass');
         return RiskAction.pass;
       }
       final result = DecisionResult.fromJson(data);
@@ -174,7 +176,7 @@ class RiskGateService extends GetxService {
         final ok = res.data != null;
         debugPrint(
             '[RiskGate] flush: POST ${RiskConfig.eventPath} eventType=${body['eventType']} '
-            'adFormat=${body['adFormat']} -> ${ok ? 'ok' : 'failed(no data)'}');
+            'adFormat=${body['adFormat']} -> ${ok ? 'ok' : 'failed(no data, code=${res.code}, message=${res.message})'}');
         return ok;
       } catch (e) {
         debugPrint('[RiskGate] flush: POST ${RiskConfig.eventPath} error: $e');
