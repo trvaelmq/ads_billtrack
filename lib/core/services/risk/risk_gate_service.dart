@@ -46,6 +46,8 @@ class RiskGateService extends GetxService {
         if (_deviceId == null) {
           debugPrint(
               '[RiskGate] deviceId is null, risk gate will fail-open until next init()');
+        } else {
+          debugPrint('[RiskGate] init: deviceId=$_deviceId');
         }
       } catch (e) {
         debugPrint(
@@ -53,6 +55,8 @@ class RiskGateService extends GetxService {
       }
     }
     await _blacklist.load();
+    debugPrint(
+        '[RiskGate] init: local blacklist loaded, version=${_blacklist.currentVersion}, syncVersion=${_blacklist.syncVersion}');
     await _syncBlacklist();
     _flushTimer?.cancel();
     _flushTimer = Timer.periodic(
@@ -62,18 +66,25 @@ class RiskGateService extends GetxService {
 
   Future<void> _syncBlacklist() async {
     try {
+      final path = '${RiskConfig.blacklistSyncPath}?version=${_blacklist.syncVersion}';
+      debugPrint('[RiskGate] blacklist sync: GET $path');
       final res = await _api.getJson<Map<String, dynamic>>(
-        '${RiskConfig.blacklistSyncPath}?version=${_blacklist.syncVersion}',
+        path,
         parser: (d) => d as Map<String, dynamic>,
       );
       final data = res.data;
-      if (data == null) return;
+      if (data == null) {
+        debugPrint('[RiskGate] blacklist sync: empty response data, keep old cache');
+        return;
+      }
       final items = (data['items'] as List? ?? [])
           .cast<Map<String, dynamic>>()
           .map(BlacklistItem.fromJson)
           .toList();
       final version = data['currentVersion'] as int? ?? _blacklist.currentVersion;
       await _blacklist.merge(newVersion: version, items: items);
+      debugPrint(
+          '[RiskGate] blacklist sync: ok, newVersion=$version, newItemsCount=${items.length}, totalKnownVersion=${_blacklist.currentVersion}');
     } catch (e) {
       debugPrint('[RiskGate] blacklist sync failed: $e');
     }
@@ -86,10 +97,15 @@ class RiskGateService extends GetxService {
     required String adFormat,
   }) async {
     final deviceId = _deviceId;
+    debugPrint('[RiskGate] decide: adSlotId=$adSlotId adFormat=$adFormat deviceId=$deviceId');
     if (deviceId != null && _blacklist.contains(type: 'DEVICE', value: deviceId)) {
+      debugPrint('[RiskGate] decide: local blacklist hit -> block, skip /risk/decide');
       return RiskAction.block;
     }
-    if (deviceId == null) return RiskAction.pass;
+    if (deviceId == null) {
+      debugPrint('[RiskGate] decide: deviceId unavailable -> fail-open pass');
+      return RiskAction.pass;
+    }
 
     final body = _buildSignedBody(
       deviceId: deviceId,
@@ -104,8 +120,15 @@ class RiskGateService extends GetxService {
         parser: (d) => d as Map<String, dynamic>,
       );
       final data = res.data;
-      if (data == null) return RiskAction.pass;
-      return DecisionResult.fromJson(data).action;
+      if (data == null) {
+        debugPrint('[RiskGate] decide: empty response data -> fail-open pass');
+        return RiskAction.pass;
+      }
+      final result = DecisionResult.fromJson(data);
+      debugPrint(
+          '[RiskGate] decide: result action=${result.action} reason=${result.reason} '
+          'confidence=${result.confidence}/${result.confidenceLevel} requestId=${result.requestId}');
+      return result.action;
     } catch (e) {
       debugPrint('[RiskGate] decide failed, fallback pass: $e');
       return RiskAction.pass;
@@ -119,7 +142,12 @@ class RiskGateService extends GetxService {
     Map<String, dynamic>? signals,
   }) {
     final deviceId = _deviceId;
-    if (deviceId == null) return;
+    debugPrint(
+        '[RiskGate] reportEvent: adFormat=$adFormat eventType=$eventType signals=$signals deviceId=$deviceId');
+    if (deviceId == null) {
+      debugPrint('[RiskGate] reportEvent: deviceId unavailable, event dropped (not queued)');
+      return;
+    }
     final body = _buildSignedBody(
       deviceId: deviceId,
       adSlotId: null,
@@ -127,10 +155,15 @@ class RiskGateService extends GetxService {
       adFormat: adFormat,
       signals: signals,
     );
-    unawaited(_queue.enqueue(body).then((_) => _flushQueue()));
+    unawaited(_queue.enqueue(body).then((_) {
+      debugPrint(
+          '[RiskGate] reportEvent: enqueued, pendingCount=${_queue.pendingCount}, triggering flush');
+      return _flushQueue();
+    }));
   }
 
   Future<void> _flushQueue() async {
+    final before = _queue.pendingCount;
     await _queue.flush(sender: (body) async {
       try {
         final res = await _api.postJson<Map<String, dynamic>>(
@@ -138,11 +171,18 @@ class RiskGateService extends GetxService {
           body,
           parser: (d) => d as Map<String, dynamic>,
         );
-        return res.data != null;
+        final ok = res.data != null;
+        debugPrint(
+            '[RiskGate] flush: POST ${RiskConfig.eventPath} eventType=${body['eventType']} '
+            'adFormat=${body['adFormat']} -> ${ok ? 'ok' : 'failed(no data)'}');
+        return ok;
       } catch (e) {
+        debugPrint('[RiskGate] flush: POST ${RiskConfig.eventPath} error: $e');
         return false;
       }
     });
+    debugPrint(
+        '[RiskGate] flush: done, pendingCount before=$before after=${_queue.pendingCount}');
   }
 
   Map<String, dynamic> _buildSignedBody({
