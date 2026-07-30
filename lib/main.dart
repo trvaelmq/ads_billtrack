@@ -21,10 +21,7 @@ void main() async {
   Get.put(ApiClient(), permanent: true);
   // RiskGateService 必须在 AdService 之前注册完成：AdService.onInit() 会同步触发
   // loadRewardedAd()，其内部会调用 RiskGateService.to，若此时还未注册会抛异常。
-  await Get.putAsync(() => RiskGateService(
-        api: Get.find<ApiClient>(),
-        eventBox: StorageService.riskEventQueueBox,
-      ).init());
+  await Get.putAsync(() => RiskGateService(api: Get.find<ApiClient>()).init());
   await Get.putAsync(() async => AdService());
   await Get.putAsync(() async => BillService());
   await Get.putAsync(() async => RecurringService());

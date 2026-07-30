@@ -98,7 +98,7 @@ class NativeExpressAdPlatformView(
                     activity.runOnUiThread { collapse() }
                 }
                 override fun onAdImpressed() {}
-                override fun onAdClicked() { channel.invokeMethod("clicked", null) }
+                override fun onAdClicked() {}
                 override fun onAdVideoStart() {}
                 override fun onAdVideoEnd() {}
                 override fun onAdVideoProgress() {}
@@ -143,16 +143,6 @@ class NativeExpressAdPlatformView(
             }
         }
         close?.setOnClickListener { collapse() }
-
-        adInfo.setOnNativeExpressAdListener(object : MgNativeEventListener {
-            override fun onAdClose() {}
-            override fun onAdImpressed() {}
-            override fun onAdClicked() { channel.invokeMethod("clicked", null) }
-            override fun onAdVideoStart() {}
-            override fun onAdVideoEnd() {}
-            override fun onAdVideoProgress() {}
-            override fun onAdFailed(errorInfo: String?) {}
-        })
 
         val prepareInfo = MgNativePrepareInfo().apply {
             setActivityRef(WeakReference(activity))

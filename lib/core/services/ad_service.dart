@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../constants/ad_config.dart';
-import '../constants/risk_config.dart';
 import 'risk/risk_gate_service.dart';
 import 'risk/risk_models.dart';
 import 'storage_service.dart';
@@ -51,15 +50,6 @@ class AdService extends GetxService {
   }
 
   Future<void> showSplashAd() async {
-    final action = await RiskGateService.to.decide(
-      adSlotId: AdConfig.splashPosId,
-      adFormat: RiskAdFormat.splash,
-    );
-    if (action.isBlocked) {
-      debugPrint('[AdService] showSplashAd blocked by risk gate: $action');
-      if (!_splashDone.isCompleted) _splashDone.complete();
-      return;
-    }
     try {
       await _method.invokeMethod('showSplashAd', {
         'posId': AdConfig.splashPosId,
@@ -82,14 +72,6 @@ class AdService extends GetxService {
     _rewardedLoadInFlight = true;
     try {
       isRewardedReady.value = false;
-      final action = await RiskGateService.to.decide(
-        adSlotId: AdConfig.rewardedPosId,
-        adFormat: RiskAdFormat.reward,
-      );
-      if (action.isBlocked) {
-        debugPrint('[AdService] loadRewardedAd blocked by risk gate: $action');
-        return;
-      }
       try {
         await _method.invokeMethod('loadRewardedAd', {
           'posId': AdConfig.rewardedPosId,
@@ -111,15 +93,6 @@ class AdService extends GetxService {
   }
 
   Future<void> showInterstitialAd() async {
-    final action = await RiskGateService.to.decide(
-      adSlotId: AdConfig.interstitialPosId,
-      adFormat: RiskAdFormat.interstitial,
-    );
-    if (action.isBlocked) {
-      debugPrint('[AdService] showInterstitialAd blocked by risk gate: $action');
-      _onInterstitialUnavailable();
-      return;
-    }
     try {
       await _method.invokeMethod('showInterstitialAd', {
         'posId': AdConfig.interstitialPosId,
@@ -130,16 +103,6 @@ class AdService extends GetxService {
   }
 
   Future<void> showFullScreenInterstitialAd() async {
-    final action = await RiskGateService.to.decide(
-      adSlotId: AdConfig.interstitialPosId,
-      adFormat: RiskAdFormat.interstitial,
-    );
-    if (action.isBlocked) {
-      debugPrint(
-          '[AdService] showFullScreenInterstitialAd blocked by risk gate: $action');
-      _onInterstitialUnavailable();
-      return;
-    }
     try {
       await _method.invokeMethod('showFullScreenInterstitialAd', {
         'posId': AdConfig.interstitialPosId,
@@ -213,26 +176,10 @@ class AdService extends GetxService {
         _endRewardedFlow();
         loadRewardedAd();
         break;
-      case 'rewarded.shown':
-        try {
-          RiskGateService.to.reportEvent(
-              adFormat: RiskAdFormat.reward, eventType: RiskEventType.impression);
-        } catch (e) {
-          debugPrint('[AdService] reportEvent(rewarded.shown) error: $e');
-        }
-        break;
-      case 'rewarded.clicked':
-        try {
-          RiskGateService.to.reportEvent(
-              adFormat: RiskAdFormat.reward, eventType: RiskEventType.click);
-        } catch (e) {
-          debugPrint('[AdService] reportEvent(rewarded.clicked) error: $e');
-        }
-        break;
-
-      // 激励视频看完：记录观看 + 启动冷却（不在这里 reload，统一在 closed 里）
+      // 激励视频看完：先问一次风控是否放行奖励，放行才记录观看 + 启动冷却
+      // （不在这里 reload，统一在 closed 里）
       case 'rewarded.rewarded':
-        _recordRewarded();
+        _onRewardedCompleted();
         break;
       // 激励视频关闭（无论是否看完）：重新加载备用 + 跳历史页
       case 'rewarded.closed':
@@ -246,39 +193,6 @@ class AdService extends GetxService {
       case 'splash.dismissed':
       case 'splash.failed':
         if (!_splashDone.isCompleted) _splashDone.complete();
-        break;
-      case 'splash.shown':
-        try {
-          RiskGateService.to.reportEvent(
-              adFormat: RiskAdFormat.splash, eventType: RiskEventType.impression);
-        } catch (e) {
-          debugPrint('[AdService] reportEvent(splash.shown) error: $e');
-        }
-        break;
-      case 'splash.clicked':
-        try {
-          RiskGateService.to.reportEvent(
-              adFormat: RiskAdFormat.splash, eventType: RiskEventType.click);
-        } catch (e) {
-          debugPrint('[AdService] reportEvent(splash.clicked) error: $e');
-        }
-        break;
-
-      case 'interstitial.shown':
-        try {
-          RiskGateService.to.reportEvent(
-              adFormat: RiskAdFormat.interstitial, eventType: RiskEventType.impression);
-        } catch (e) {
-          debugPrint('[AdService] reportEvent(interstitial.shown) error: $e');
-        }
-        break;
-      case 'interstitial.clicked':
-        try {
-          RiskGateService.to.reportEvent(
-              adFormat: RiskAdFormat.interstitial, eventType: RiskEventType.click);
-        } catch (e) {
-          debugPrint('[AdService] reportEvent(interstitial.clicked) error: $e');
-        }
         break;
 
       // 插屏关闭：前置 → 延迟300ms再弹激励；后置 → 解锁并真正返回
@@ -301,14 +215,21 @@ class AdService extends GetxService {
     }
   }
 
+  /// 激励视频看完时调用一次风控，BLOCK/THROTTLE 则不发奖励，仍进入冷却避免立即重试。
+  Future<void> _onRewardedCompleted() async {
+    final result = await RiskGateService.to.checkRewardCompletion();
+    if (result.action.isBlocked) {
+      debugPrint(
+          '[AdService] reward denied by risk gate: ${result.action} ${result.reason}');
+      _startCooldown();
+      return;
+    }
+    await _recordRewarded();
+  }
+
   Future<void> _recordRewarded() async {
     await StorageService.saveAdRecord('rewarded');
     todayWatchCount.value = StorageService.todayAdRecords.length;
-    RiskGateService.to.reportEvent(
-      adFormat: RiskAdFormat.reward,
-      eventType: RiskEventType.conversion,
-      signals: {'completionRate': 1.0},
-    );
     _startCooldown();
   }
 

@@ -89,9 +89,6 @@ extension BannerContainerView: SFBannerDelegate {
     func bannerAdDidFailed(_ error: Error) {
         debugPrint("[Banner] 加载失败 \(error.localizedDescription)")
     }
-    func bannerAdDidClick() {
-        channel.invokeMethod("clicked", arguments: nil)
-    }
     func bannerAdDidClose() {
         subviews.forEach { $0.removeFromSuperview() }
         channel.invokeMethod("resize", arguments: Double(0)) // 关闭后 Flutter 收起占位

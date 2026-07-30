@@ -6,10 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/ad_config.dart';
 import '../../core/constants/app_constants.dart';
-import '../../core/constants/risk_config.dart';
 import '../../core/services/ad_service.dart';
-import '../../core/services/risk/risk_gate_service.dart';
-import '../../core/services/risk/risk_models.dart';
 import '../../core/theme/app_theme.dart';
 import 'stats_controller.dart';
 
@@ -128,43 +125,11 @@ class _ExpensePieChartState extends State<_ExpensePieChart> {
         _showCooldownDialog(ad);
         return;
       }
-      // 风控预检：BLOCK/THROTTLE 直接提示，避免弹出插屏后激励却看不了
-      // 注意：这里和 AdService.loadRewardedAd() 内部都会各自调一次 /risk/decide
-      // (每次点击对应 2 次 REQUEST 事件),是为了在这里能立即弹出拦截提示、
-      // 不必等插屏弹出后激励才发现不可用。已知会让同一次点击的请求计数翻倍，
-      // 如果后端按 REQUEST 事件计数做频控，需要后端侧对短时间内的重复 request 去重，
-      // 或者未来考虑去掉其中一次调用。
-      final action = await RiskGateService.to.decide(
-        adSlotId: AdConfig.rewardedPosId,
-        adFormat: RiskAdFormat.reward,
-      );
-      if (action.isBlocked) {
-        _showDeniedDialog('观看太频繁啦，请稍后再试');
-        return;
-      }
       if (!ad.isRewardedReady.value) ad.loadRewardedAd(); // 兜底加载
       ad.startRewardedAdFlow();
     } finally {
       _triggering = false;
     }
-  }
-
-  void _showDeniedDialog(String message) {
-    Get.dialog(
-      CupertinoAlertDialog(
-        title: const Text('提示'),
-        content: Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Text(message),
-        ),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Get.back(),
-            child: const Text('确定'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showCooldownDialog(AdService ad) {

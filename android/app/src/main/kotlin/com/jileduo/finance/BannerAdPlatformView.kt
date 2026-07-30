@@ -54,7 +54,7 @@ class BannerAdPlatformView(
                     reportHeight(view)
                 }
                 override fun onShow(ecpm: Int)   {}
-                override fun onClick()           { channel.invokeMethod("clicked", null) }
+                override fun onClick()           {}
                 override fun onLeftApplication() {}
                 override fun onClose()           {
                     container.removeAllViews()

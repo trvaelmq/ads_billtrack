@@ -2,8 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../core/constants/risk_config.dart';
-import '../core/services/risk/risk_gate_service.dart';
 
 /// 横幅广告。[height] 仅作初始/占位高度，真实高度由原生渲染后经
 /// `com.billtrack/ad_view_<viewId>` 通道回传，自适应重建，避免创意被裁或留白。
@@ -24,13 +22,6 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
       if (call.method == 'resize') {
         final h = (call.arguments as num).toDouble();
         if (mounted && h >= 0 && h != _height) setState(() => _height = h);
-      } else if (call.method == 'clicked') {
-        try {
-          RiskGateService.to
-              .reportEvent(adFormat: RiskAdFormat.banner, eventType: RiskEventType.click);
-        } catch (e) {
-          debugPrint('[BannerAdWidget] reportEvent(clicked) error: $e');
-        }
       }
     });
   }

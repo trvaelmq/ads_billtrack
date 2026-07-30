@@ -75,9 +75,6 @@ class NativeExpressContainerView: UIView {
 }
 
 extension NativeExpressContainerView: SFNativeDelegate {
-    func nativeAdDidClicked() {
-        channel.invokeMethod("clicked", arguments: nil)
-    }
     func nativeAdDidRenderSuccess(withADView nativeAdView: UIView) {
         // 测量渲染视图真实高度，按内容尺寸布局并回传 Flutter 自适应
         var h = nativeAdView.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).height

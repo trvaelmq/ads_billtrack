@@ -8,15 +8,12 @@ import '../../data/models/ad_record.dart';
 import '../../data/models/recurring_rule.dart';
 import '../../data/models/health_score_history.dart';
 import '../../data/models/account_record.dart';
-import '../../data/models/risk_event_record.dart';
 
 class StorageService {
   static late Box<BillRecord> _billBox;
   static late Box<AdRecord>   _adBox;
   static late Box<RecurringRule> _recurringBox;
   static late Box<AccountRecord> _accountBox;
-  // 非私有:main.dart 需要把这个 Box 直接传给 RiskGateService 构造函数
-  static late Box<RiskEventRecord> riskEventQueueBox;
   static late SharedPreferences _prefs;
 
   static Future<void> init() async {
@@ -25,13 +22,10 @@ class StorageService {
     Hive.registerAdapter(AdRecordAdapter());
     Hive.registerAdapter(RecurringRuleAdapter());
     Hive.registerAdapter(AccountRecordAdapter());
-    Hive.registerAdapter(RiskEventRecordAdapter());
     _billBox       = await Hive.openBox<BillRecord>('bill_records');
     _adBox         = await Hive.openBox<AdRecord>('ad_records');
     _recurringBox  = await Hive.openBox<RecurringRule>('recurring_rules');
     _accountBox    = await Hive.openBox<AccountRecord>('accounts');
-    riskEventQueueBox =
-        await Hive.openBox<RiskEventRecord>('risk_event_queue');
     _prefs   = await SharedPreferences.getInstance();
   }
 
@@ -231,7 +225,6 @@ class StorageService {
     await _adBox.clear();
     await _recurringBox.clear();
     await _accountBox.clear();
-    await riskEventQueueBox.clear();
     await _prefs.clear();
   }
 }
