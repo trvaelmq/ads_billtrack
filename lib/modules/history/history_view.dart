@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import '../../core/services/ad_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/app_theme.dart';
@@ -20,88 +19,69 @@ class HistoryView extends GetView<HistoryController> {
     '又多看了一个广告，不错👍',
   ];
 
-  // 返回时：从激励流程进来的，先延迟弹后置插屏，插屏关闭后才真正返回
-  void _handleBack() {
-    final ad = AdService.to;
-    if (ad.historyBackLocked) return; // 插屏弹出中/已在返回流程，忽略重复返回
-    if (ad.consumeHistoryBackInterstitial()) {
-      ad.showInterstitialForHistoryBack(); // 关闭后由 AdService 执行 Get.back()
-    } else {
-      Get.back();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
-        _handleBack();
-      },
-      child: Scaffold(
-        extendBodyBehindAppBar: true,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_ios,
-              color: Colors.white,
-              size: 20,
-            ),
-            onPressed: _handleBack,
-          ),
-          title: const Text(
-            '统计历史',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-          ),
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          onPressed: () {
+            debugPrint('[HistoryView] back pressed: 直接返回，不再弹插屏');
+            Get.back();
+          },
         ),
-        body: Obx(() {
-          final records = controller.records;
-          return Column(
-            children: [
-              Container(
-                height: MediaQuery.of(context).padding.top + 56,
-                decoration: const BoxDecoration(
-                  gradient: AppTheme.primaryGradient,
-                ),
-              ),
-              _UserCard(recordCount: records.length),
-              const Divider(height: 1),
-              Expanded(
-                child:
-                    records.isEmpty
-                        ? const Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text('📺', style: TextStyle(fontSize: 60)),
-                              SizedBox(height: 12),
-                              Text(
-                                '还没有广告记录',
-                                style: TextStyle(color: AppTheme.textSecondary),
-                              ),
-                            ],
-                          ),
-                        )
-                        : ListView.builder(
-                          padding: const EdgeInsets.only(top: 8, bottom: 24),
-                          itemCount: records.length,
-                          itemBuilder:
-                              (_, i) => StaggeredListItem(
-                                index: i,
-                                child: _RecordItem(
-                                  record: records[i],
-                                  onTap: () => _showDetail(context, records[i]),
-                                ),
-                              ),
-                        ),
-              ),
-            ],
-          );
-        }),
+        title: const Text(
+          '统计历史',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
       ),
+      body: Obx(() {
+        final records = controller.records;
+        return Column(
+          children: [
+            Container(
+              height: MediaQuery.of(context).padding.top + 56,
+              decoration: const BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+              ),
+            ),
+            _UserCard(recordCount: records.length),
+            const Divider(height: 1),
+            Expanded(
+              child:
+                  records.isEmpty
+                      ? const Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('📺', style: TextStyle(fontSize: 60)),
+                            SizedBox(height: 12),
+                            Text(
+                              '还没有广告记录',
+                              style: TextStyle(color: AppTheme.textSecondary),
+                            ),
+                          ],
+                        ),
+                      )
+                      : ListView.builder(
+                        padding: const EdgeInsets.only(top: 8, bottom: 24),
+                        itemCount: records.length,
+                        itemBuilder:
+                            (_, i) => StaggeredListItem(
+                              index: i,
+                              child: _RecordItem(
+                                record: records[i],
+                                onTap: () => _showDetail(context, records[i]),
+                              ),
+                            ),
+                      ),
+            ),
+          ],
+        );
+      }),
     );
   }
 

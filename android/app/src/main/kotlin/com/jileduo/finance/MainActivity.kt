@@ -26,6 +26,17 @@ class MainActivity : FlutterActivity() {
                             contentResolver, android.provider.Settings.Secure.ANDROID_ID
                         )
                     )
+                    // 风控网关 signals 字段用：机型/系统版本/是否插卡/运营商，均为公开信息无需危险权限
+                    "getDeviceSignals"   -> {
+                        val tm = getSystemService(android.content.Context.TELEPHONY_SERVICE)
+                                as? android.telephony.TelephonyManager
+                        result.success(mapOf(
+                            "deviceModel" to android.os.Build.MODEL,
+                            "systemVersion" to android.os.Build.VERSION.RELEASE,
+                            "simPresent" to (tm?.simState == android.telephony.TelephonyManager.SIM_STATE_READY),
+                            "simCarrier" to tm?.networkOperatorName?.takeIf { it.isNotEmpty() }
+                        ))
+                    }
                     "initAdSdk"          -> { MyApplication.acceptPrivacyAndInitSdk(this); result.success(null) }
                     "showSplashAd"       -> { adManager.showSplashAd(this, posId(AdConfig.SPLASH_POS_ID)); result.success(null) }
                     "dismissSplashAd"    -> { adManager.dismissSplashAd(); result.success(null) }

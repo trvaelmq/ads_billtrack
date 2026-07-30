@@ -3,6 +3,7 @@ import UIKit
 import UserNotifications
 import AppTrackingTransparency
 import Security
+import CoreTelephony
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -123,6 +124,8 @@ import Security
         switch call.method {
         case "getDeviceId":
             result(DeviceIdentifier.persistentId())
+        case "getDeviceSignals":
+            result(currentDeviceSignals())
         case "showSplashAd":
             AdManager.shared.loadSplashAd(posId: posId(AdConfig.splashPosId), viewController: controller)
             result(nil)
@@ -141,6 +144,23 @@ import Security
         default:
             result(FlutterMethodNotImplemented)
         }
+    }
+
+    /// 风控网关 signals 字段用：机型标识/系统版本/是否插卡/运营商。
+    /// 运营商名 iOS 16 起系统 API 基本恒返回 nil（Apple 出于隐私移除），属已知限制，尽力而为。
+    private func currentDeviceSignals() -> [String: Any] {
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let deviceModel = withUnsafePointer(to: &systemInfo.machine) {
+            $0.withMemoryRebound(to: CChar.self, capacity: 1) { String(cString: $0) }
+        }
+        let carriers = CTTelephonyNetworkInfo().serviceSubscriberCellularProviders?.values ?? [:].values
+        return [
+            "deviceModel": deviceModel,
+            "systemVersion": UIDevice.current.systemVersion,
+            "simPresent": !carriers.isEmpty,
+            "simCarrier": carriers.first?.carrierName ?? NSNull(),
+        ]
     }
 }
 

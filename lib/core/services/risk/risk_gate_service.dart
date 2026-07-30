@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -24,6 +25,8 @@ class RiskGateService extends GetxService {
   final DeviceIdProvider _deviceIdProvider;
 
   String? _deviceId;
+  // 机型/系统版本/是否插卡/运营商，设备生命周期内不会变，init() 时拉一次缓存。
+  Map<String, dynamic>? _deviceSignals;
 
   RiskGateService({
     required ApiClient api,
@@ -47,7 +50,40 @@ class RiskGateService extends GetxService {
             '[RiskGate] deviceId fetch failed, risk gate will fail-open until next init(): $e');
       }
     }
+    if (_deviceSignals == null) {
+      try {
+        final raw = await _method.invokeMethod('getDeviceSignals');
+        if (raw is Map) {
+          _deviceSignals = raw.map((k, v) => MapEntry(k.toString(), v));
+          debugPrint('[RiskGate] init: deviceSignals=$_deviceSignals');
+        }
+      } catch (e) {
+        debugPrint('[RiskGate] getDeviceSignals failed: $e');
+      }
+    }
     return this;
+  }
+
+  /// 本机非回环 IPv4 地址，尽力而为（拿不到就不传，后端也能从请求头取）。
+  Future<String?> _getLocalIp() async {
+    try {
+      final interfaces = await NetworkInterface.list(
+        includeLoopback: false,
+        type: InternetAddressType.IPv4,
+      );
+      for (final iface in interfaces) {
+        for (final addr in iface.addresses) {
+          if (!addr.isLoopback) {
+            debugPrint('[RiskGate] getLocalIp: ${addr.address} (iface=${iface.name})');
+            return addr.address;
+          }
+        }
+      }
+      debugPrint('[RiskGate] getLocalIp: no non-loopback IPv4 address found');
+    } catch (e) {
+      debugPrint('[RiskGate] getLocalIp failed: $e');
+    }
+    return null;
   }
 
   /// 登录点击前调用。超时/异常/解析失败一律本地降级为 pass，不阻断正常登录。
@@ -78,9 +114,10 @@ class RiskGateService extends GetxService {
   Future<DecisionResult> checkRewardCompletion() {
     return _request(
       path: RiskConfig.eventPath,
+      adSlotId: AdConfig.rewardedPosId,
       adFormat: RiskAdFormat.reward,
       eventType: RiskEventType.conversion,
-      signals: const {'completionRate': 1.0},
+      extraSignals: const {'completionRate': 1.0},
     );
   }
 
@@ -89,7 +126,7 @@ class RiskGateService extends GetxService {
     required String adFormat,
     required String eventType,
     String? adSlotId,
-    Map<String, dynamic>? signals,
+    Map<String, dynamic>? extraSignals,
   }) async {
     final deviceId = _deviceId;
     debugPrint(
@@ -99,12 +136,12 @@ class RiskGateService extends GetxService {
       return DecisionResult.passFallback('DEVICE_ID_UNAVAILABLE');
     }
 
-    final body = _buildSignedBody(
+    final body = await _buildSignedBody(
       deviceId: deviceId,
       adSlotId: adSlotId,
       eventType: eventType,
       adFormat: adFormat,
-      signals: signals,
+      extraSignals: extraSignals,
     );
     try {
       final res = await _api.postJson<Map<String, dynamic>>(
@@ -129,13 +166,13 @@ class RiskGateService extends GetxService {
     }
   }
 
-  Map<String, dynamic> _buildSignedBody({
+  Future<Map<String, dynamic>> _buildSignedBody({
     required String deviceId,
     required String eventType,
     required String adFormat,
     String? adSlotId,
-    Map<String, dynamic>? signals,
-  }) {
+    Map<String, dynamic>? extraSignals,
+  }) async {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final nonce = const Uuid().v4();
     final signature = RiskSigner.sign(
@@ -144,15 +181,31 @@ class RiskGateService extends GetxService {
       timestamp: timestamp,
       nonce: nonce,
     );
+    final ip = await _getLocalIp();
+    final deviceSignals = _deviceSignals;
+    final signals = <String, dynamic>{
+      // idfv 字段沿用与 deviceId 相同的取值（iOS: IDFV，Android: OAID/AndroidID）
+      'idfv': deviceId,
+      if (deviceSignals?['deviceModel'] != null)
+        'deviceModel': deviceSignals!['deviceModel'],
+      if (deviceSignals?['systemVersion'] != null)
+        'systemVersion': deviceSignals!['systemVersion'],
+      if (deviceSignals?['simPresent'] != null)
+        'simPresent': deviceSignals!['simPresent'],
+      if (deviceSignals?['simCarrier'] != null)
+        'simCarrier': deviceSignals!['simCarrier'],
+      if (extraSignals != null) ...extraSignals,
+    };
     return {
       'deviceId': deviceId,
+      if (ip != null) 'ip': ip,
       if (adSlotId != null) 'adSlotId': adSlotId,
       'eventType': eventType,
       'adFormat': adFormat,
       'timestamp': timestamp,
       'nonce': nonce,
       'signature': signature,
-      if (signals != null) 'signals': signals,
+      'signals': signals,
     };
   }
 }

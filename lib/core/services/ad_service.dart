@@ -23,9 +23,6 @@ class AdService extends GetxService {
 
   // 流程阶段标记
   bool _interstitialIsPreRewarded = false; // 插屏是激励前置？关闭后弹激励
-  bool _interstitialIsPostHistory = false; // 插屏是历史页后置？关闭后才返回
-  bool _pendingHistoryBack = false; // 激励结束后跳历史，返回时弹插屏
-  bool historyBackLocked = false; // 历史页返回锁，锁住期间忽略所有返回
   bool _rewardedFlowInProgress = false; // 激励流程进行中，忽略重复点击
   bool _rewardedLoadInFlight = false; // 激励加载进行中，防止并发重复调用
 
@@ -129,22 +126,7 @@ class AdService extends GetxService {
     _postInterstitialTimer?.cancel();
   }
 
-  /// 历史页返回时调用，消费一次"返回后弹插屏"标记，同时立即上锁
-  bool consumeHistoryBackInterstitial() {
-    final val = _pendingHistoryBack;
-    _pendingHistoryBack = false;
-    if (val) historyBackLocked = true;
-    return val;
-  }
-
-  /// 历史页确认要弹后置插屏（延迟3秒后弹，弹完才返回）
-  void showInterstitialForHistoryBack() {
-    _interstitialIsPostHistory = true;
-    _postInterstitialTimer?.cancel();
-    _postInterstitialTimer = Timer(_randomDelay(), showInterstitialAd);
-  }
-
-  /// 插屏不可用(风控拦截 / 加载失败)时的统一收尾:维持现有前置/后置状态机不被卡死。
+  /// 插屏不可用(风控拦截 / 加载失败)时的统一收尾:维持现有前置状态机不被卡死。
   void _onInterstitialUnavailable() {
     if (_interstitialIsPreRewarded) {
       _interstitialIsPreRewarded = false;
@@ -153,10 +135,6 @@ class AdService extends GetxService {
       } else {
         _endRewardedFlow();
       }
-    } else if (_interstitialIsPostHistory) {
-      _interstitialIsPostHistory = false;
-      historyBackLocked = false;
-      Get.back();
     }
   }
 
@@ -183,9 +161,9 @@ class AdService extends GetxService {
         break;
       // 激励视频关闭（无论是否看完）：重新加载备用 + 跳历史页
       case 'rewarded.closed':
+        debugPrint('[AdService] rewarded.closed: reload + navigate to /history (返回时不再弹插屏)');
         _endRewardedFlow();
         loadRewardedAd();
-        _pendingHistoryBack = true;
         Get.toNamed('/history');
         break;
 
@@ -195,20 +173,16 @@ class AdService extends GetxService {
         if (!_splashDone.isCompleted) _splashDone.complete();
         break;
 
-      // 插屏关闭：前置 → 延迟300ms再弹激励；后置 → 解锁并真正返回
+      // 插屏关闭：前置 → 延迟300ms再弹激励
       case 'interstitial.dismissed':
         if (_interstitialIsPreRewarded) {
           _interstitialIsPreRewarded = false;
           _postInterstitialTimer?.cancel();
           _postInterstitialTimer = Timer(_randomDelay(), showRewardedAd);
-        } else if (_interstitialIsPostHistory) {
-          _interstitialIsPostHistory = false;
-          historyBackLocked = false;
-          Get.back();
         }
         break;
 
-      // 插屏加载失败：前置 → 跳过直接弹激励；后置 → 解锁并直接返回
+      // 插屏加载失败：前置 → 跳过直接弹激励
       case 'interstitial.failed':
         _onInterstitialUnavailable();
         break;
@@ -217,6 +191,7 @@ class AdService extends GetxService {
 
   /// 激励视频看完时调用一次风控，BLOCK/THROTTLE 则不发奖励，仍进入冷却避免立即重试。
   Future<void> _onRewardedCompleted() async {
+    debugPrint('[AdService] rewarded.rewarded: checking risk gate before granting reward');
     final result = await RiskGateService.to.checkRewardCompletion();
     if (result.action.isBlocked) {
       debugPrint(
@@ -224,6 +199,8 @@ class AdService extends GetxService {
       _startCooldown();
       return;
     }
+    debugPrint(
+        '[AdService] reward allowed by risk gate: ${result.action} ${result.reason}, recording...');
     await _recordRewarded();
   }
 
