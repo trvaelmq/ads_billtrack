@@ -8,10 +8,18 @@ import '../../core/services/bill_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../router/app_pages.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/constants/ad_config.dart';
+import '../../widgets/native_express_ad_widget.dart';
 import 'profile_controller.dart';
 
 class ProfileView extends GetView<ProfileController> {
   const ProfileView({super.key});
+
+  /// 列表项点击闸门：先判断登录，未登录弹确认并按需登录，登录后才进入目标页。
+  Future<void> _guardNav(String route, String message) async {
+    if (!await AuthService.to.ensureLoggedIn(message: message)) return;
+    Get.toNamed(route);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,33 +99,38 @@ class ProfileView extends GetView<ProfileController> {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
+          if (AdConfig.profileFeedPosId.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              child: NativeExpressAdWidget(posId: AdConfig.profileFeedPosId),
+            ),
           const SizedBox(height: 8),
           _SectionHeader(title: '财务工具'),
           _MenuItem(icon: Icons.bar_chart, label: '统计分析', subtitle: '查看收支分布和月度趋势',
-              onTap: () => Get.toNamed(Routes.stats)),
+              onTap: () => _guardNav(Routes.stats, '查看统计分析需要登录，是否前往登录？')),
           _MenuItem(icon: Icons.account_balance_wallet, label: '预算管理', subtitle: '设置各类别月度预算',
-              onTap: () => Get.toNamed(Routes.budget)),
+              onTap: () => _guardNav(Routes.budget, '管理预算需要登录，是否前往登录？')),
           _MenuItem(icon: Icons.account_balance, label: '资产账户', subtitle: '管理账户余额，记账自动增减',
-              onTap: () => Get.toNamed(Routes.accounts)),
+              onTap: () => _guardNav(Routes.accounts, '管理资产账户需要登录，是否前往登录？')),
           _MenuItem(
             icon: Icons.repeat_outlined,
             label: '定期账单',
             subtitle: '管理固定收支，到期一键记录',
-            onTap: () => Get.toNamed(Routes.recurring),
+            onTap: () => _guardNav(Routes.recurring, '管理定期账单需要登录，是否前往登录？'),
           ),
           _MenuItem(icon: Icons.people, label: 'AA 分摊计算器', subtitle: '快速计算多人分摊金额',
-              onTap: () => Get.toNamed(Routes.split)),
+              onTap: () => _guardNav(Routes.split, '使用 AA 分摊计算器需要登录，是否前往登录？')),
           _MenuItem(
             icon: Icons.category_outlined,
             label: '我的分类',
             subtitle: '新增自定义收支分类',
-            onTap: () => Get.toNamed(Routes.categoryMgmt),
+            onTap: () => _guardNav(Routes.categoryMgmt, '管理我的分类需要登录，是否前往登录？'),
           ),
           _MenuItem(
             icon: Icons.monitor_heart_outlined,
             label: '财务健康评分',
             subtitle: '查看本月财务健康详细分析',
-            onTap: () => Get.toNamed(Routes.healthScore),
+            onTap: () => _guardNav(Routes.healthScore, '查看财务健康评分需要登录，是否前往登录？'),
           ),
           const SizedBox(height: 8),
           _SectionHeader(title: '数据'),
@@ -254,9 +267,11 @@ class ProfileView extends GetView<ProfileController> {
   }
 
   Future<void> _confirmDeleteAccount() async {
+    if (!await AuthService.to.ensureLoggedIn(message: '注销账号需要先登录，是否前往登录？')) return;
+
     final first = await Get.dialog<bool>(AlertDialog(
       title: const Text('注销账号'),
-      content: const Text('将永久删除所有账单、账户、预算等本地数据，且无法恢复。确定继续？'),
+      content: const Text('注销后当前账号将无法再登录，且会永久删除所有账单、账户、预算等本地数据，无法恢复。确定继续？'),
       actions: [
         TextButton(onPressed: () => Get.back(result: false), child: const Text('取消')),
         TextButton(onPressed: () => Get.back(result: true),
@@ -267,7 +282,7 @@ class ProfileView extends GetView<ProfileController> {
 
     final second = await Get.dialog<bool>(AlertDialog(
       title: const Text('最后确认'),
-      content: const Text('真的要清空全部数据吗？此操作不可恢复。'),
+      content: const Text('真的要注销账号吗？此操作不可恢复。'),
       actions: [
         TextButton(onPressed: () => Get.back(result: false), child: const Text('我再想想')),
         TextButton(onPressed: () => Get.back(result: true),
@@ -276,7 +291,11 @@ class ProfileView extends GetView<ProfileController> {
     ));
     if (second != true) return;
 
-    if (AuthService.to.isLoggedIn.value) await AuthService.to.logout();
+    final result = await AuthService.to.cancelAccount();
+    if (!result.success) {
+      Get.snackbar('注销失败', result.message, snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
     await StorageService.wipeAllData();
     // 清空常驻 Service 的内存缓存，避免注销后仍显示旧数据
     AccountService.to.loadAccounts();

@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../data/models/user_info.dart';
 import '../../router/app_pages.dart';
+import '../constants/risk_config.dart';
 import '../network/api_client.dart';
 import '../network/api_result.dart';
+import 'risk/risk_gate_service.dart';
+import 'risk/risk_models.dart';
 import 'storage_service.dart';
 
 /// 认证服务：登录状态、token 持久化、认证接口业务封装。
@@ -18,6 +21,11 @@ class AuthService extends GetxService {
   final userInfo = Rxn<UserInfo>();
 
   String? _token;
+
+  /// 与风控 SDK 用同一个 deviceId，注册/登录时透传给后端，
+  /// 用于按 deviceId 关联广告观看数。RiskGateService 未就绪时为 null。
+  String? get _deviceId =>
+      Get.isRegistered<RiskGateService>() ? RiskGateService.to.deviceId : null;
 
   @override
   void onInit() {
@@ -63,6 +71,7 @@ class AuthService extends GetxService {
     String? phone,
     String? email,
     String? nickname,
+    String? invitationCode,
   }) async {
     final body = <String, dynamic>{
       'username': username,
@@ -70,6 +79,9 @@ class AuthService extends GetxService {
       if (phone != null && phone.isNotEmpty) 'phone': phone,
       if (email != null && email.isNotEmpty) 'email': email,
       if (nickname != null && nickname.isNotEmpty) 'nickname': nickname,
+      if (invitationCode != null && invitationCode.isNotEmpty)
+        'invitationCode': invitationCode,
+      if (_deviceId != null) 'deviceId': _deviceId,
     };
     final result = await _api.postJson<void>('/api/auth/register', body);
     if (!result.success) return result;
@@ -101,10 +113,28 @@ class AuthService extends GetxService {
     return isLoggedIn.value;
   }
 
+  /// 点登录按钮时先做风控校验：命中 BLOCK/THROTTLE 直接拦截，不发登录请求；
+  /// 风控服务未就绪或异常一律降级放行（不阻断正常登录）。
+  Future<ApiResult<void>?> _riskGateLogin() async {
+    if (!Get.isRegistered<RiskGateService>()) return null;
+    final result = await RiskGateService.to.decideDetailed(
+      adSlotId: RiskConfig.loginSlotId,
+      adFormat: RiskAdFormat.login,
+    );
+    if (!result.action.isBlocked) return null;
+    return ApiResult(code: -1, message: result.message ?? '登录失败，请稍后重试');
+  }
+
   Future<ApiResult<void>> login(String username, String password) async {
+    final riskBlock = await _riskGateLogin();
+    if (riskBlock != null) return riskBlock;
     final result = await _api.postJson<Map<String, dynamic>>(
       '/api/auth/login',
-      {'username': username, 'password': password},
+      {
+        'username': username,
+        'password': password,
+        if (_deviceId != null) 'deviceId': _deviceId,
+      },
       parser: (d) => d as Map<String, dynamic>,
     );
     if (!result.success || result.data == null) {
@@ -135,6 +165,13 @@ class AuthService extends GetxService {
       }
     }
     _clearLocal();
+  }
+
+  /// 注销账号：真正使账号失效（区别于 [logout] 退出登录），成功后清本地登录态。
+  Future<ApiResult<void>> cancelAccount() async {
+    final result = await _api.getJson<void>('/api/auth/cancel');
+    if (result.success) _clearLocal();
+    return result;
   }
 
   void _clearLocal() {

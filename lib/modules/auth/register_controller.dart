@@ -13,6 +13,7 @@ class RegisterController extends GetxController {
   final phoneController = TextEditingController();
   final emailController = TextEditingController();
   final nicknameController = TextEditingController();
+  final invitationCodeController = TextEditingController();
   final loading = false.obs;
   final agreedToPrivacy = false.obs;
 
@@ -46,6 +47,7 @@ class RegisterController extends GetxController {
       phone: phoneController.text.trim(),
       email: emailController.text.trim(),
       nickname: nicknameController.text.trim(),
+      invitationCode: invitationCodeController.text.trim(),
     );
     loading.value = false;
     if (result.success) {
@@ -65,6 +67,7 @@ class RegisterController extends GetxController {
     phoneController.dispose();
     emailController.dispose();
     nicknameController.dispose();
+    invitationCodeController.dispose();
     super.onClose();
   }
 }

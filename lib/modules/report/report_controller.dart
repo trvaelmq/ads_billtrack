@@ -1,6 +1,8 @@
 import 'package:get/get.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/bill_service.dart';
 import '../../core/services/storage_service.dart';
+import '../../router/app_pages.dart';
 
 class ReportController extends GetxController {
   final bill = BillService.to;
@@ -40,7 +42,14 @@ class ReportController extends GetxController {
   }
 
   Future<void> goToBudget() async {
-    await Get.toNamed('/budget');
+    if (!await AuthService.to.ensureLoggedIn(message: '管理预算需要登录，是否前往登录？')) return;
+    await Get.toNamed(Routes.budget);
+    _loadBudgets();
+  }
+
+  Future<void> goToBudgetDetail(String categoryId) async {
+    if (!await AuthService.to.ensureLoggedIn(message: '管理预算需要登录，是否前往登录？')) return;
+    await Get.toNamed(Routes.budgetDetail, arguments: categoryId);
     _loadBudgets();
   }
 }

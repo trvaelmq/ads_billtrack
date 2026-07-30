@@ -111,10 +111,7 @@ class _MonthlyReportTab extends StatelessWidget {
             return _BudgetRow(
               emoji: cat.emoji, label: cat.label, color: cat.color,
               spent: spent, budget: budget, rowIndex: entry.key,
-              onTap: () async {
-                await Get.toNamed(Routes.budgetDetail, arguments: cat.id);
-                controller.refreshBudgets();
-              },
+              onTap: () => controller.goToBudgetDetail(cat.id),
             );
           }),
         if (hasBudget) ...[

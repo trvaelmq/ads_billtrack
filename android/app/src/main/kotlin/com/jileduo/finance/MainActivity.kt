@@ -20,6 +20,12 @@ class MainActivity : FlutterActivity() {
                 val args = call.arguments as? Map<String, Any>
                 fun posId(fallback: String) = args?.get("posId") as? String ?: fallback
                 when (call.method) {
+                    // 设备唯一 ID：ANDROID_ID 随设备+签名稳定，卸载重装不变，用于服务端广告限频
+                    "getDeviceId"        -> result.success(
+                        android.provider.Settings.Secure.getString(
+                            contentResolver, android.provider.Settings.Secure.ANDROID_ID
+                        )
+                    )
                     "initAdSdk"          -> { MyApplication.acceptPrivacyAndInitSdk(this); result.success(null) }
                     "showSplashAd"       -> { adManager.showSplashAd(this, posId(AdConfig.SPLASH_POS_ID)); result.success(null) }
                     "dismissSplashAd"    -> { adManager.dismissSplashAd(); result.success(null) }
@@ -41,11 +47,11 @@ class MainActivity : FlutterActivity() {
             override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
                 binding.platformViewRegistry.registerViewFactory(
                     "com.billtrack/banner_ad",
-                    BannerAdViewFactory(this@MainActivity)
+                    BannerAdViewFactory(this@MainActivity, binding.binaryMessenger)
                 )
                 binding.platformViewRegistry.registerViewFactory(
                     "com.billtrack/native_express_ad",
-                    NativeExpressAdViewFactory(this@MainActivity)
+                    NativeExpressAdViewFactory(this@MainActivity, binding.binaryMessenger)
                 )
             }
             override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {}

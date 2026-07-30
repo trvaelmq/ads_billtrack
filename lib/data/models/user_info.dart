@@ -6,6 +6,7 @@ class UserInfo {
   final String? avatar;
   final String? phone;
   final String? email;
+  final String? accountId;
 
   const UserInfo({
     required this.id,
@@ -14,6 +15,7 @@ class UserInfo {
     this.avatar,
     this.phone,
     this.email,
+    this.accountId,
   });
 
   factory UserInfo.fromJson(Map<String, dynamic> json) => UserInfo(
@@ -23,6 +25,7 @@ class UserInfo {
         avatar: json['avatar'] as String?,
         phone: json['phone'] as String?,
         email: json['email'] as String?,
+        accountId: json['accountId'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -32,5 +35,6 @@ class UserInfo {
         'avatar': avatar,
         'phone': phone,
         'email': email,
+        'accountId': accountId,
       };
 }

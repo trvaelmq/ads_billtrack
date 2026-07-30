@@ -72,6 +72,14 @@ class RegisterView extends GetView<RegisterController> {
             ),
           ),
           const SizedBox(height: 16),
+          TextField(
+            controller: controller.invitationCodeController,
+            decoration: const InputDecoration(
+              labelText: '邀请码（选填）',
+              prefixIcon: Icon(Icons.card_giftcard_outlined),
+            ),
+          ),
+          const SizedBox(height: 16),
           Obx(() => Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [

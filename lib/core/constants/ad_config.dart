@@ -9,6 +9,7 @@ class AdConfig {
   static const String _iosBannerHomePosId    = 'b0288c31dc859ebf'; // 智探眼_iOS-横幅-HOME
   static const String _iosInterstitialPosId  = 'f39df5130e18f3d0'; // 智探眼_iOS-插屏
   static const String _iosDetailBannerPosId  = 'd6c5e2397e02e837'; // 智探眼_iOS-原生混合
+  static const String _iosProfileFeedPosId   = 'd3b6ceb76ea66ec4'; // 智探眼_iOS-信息流-我的
 
   // ── Android(MgMobi)广告 ID ───────────────────────────────────
   static const String _androidAppId             = 'e3a729330c8ca9a4'; // 智探眼_Android
@@ -18,6 +19,7 @@ class AdConfig {
   static const String _androidBannerHomePosId   = 'b01efa3d7e41ae5c'; // 智探眼_Android-横幅-HOME
   static const String _androidInterstitialPosId = '69f84f4e4aba54b1'; // 智探眼_Android-插屏
   static const String _androidDetailBannerPosId = 'c6d90d9e869f7098'; // 智探眼_Android-原生混合
+  static const String _androidProfileFeedPosId  = ''; // TODO(运营): 安卓信息流-我的 广告位ID待创建后补充
 
   // ── 对外接口（自动按平台选择）────────────────────────────────────
   static String get appId             => Platform.isIOS ? _iosAppId             : _androidAppId;
@@ -27,6 +29,7 @@ class AdConfig {
   static String get bannerHomePosId   => Platform.isIOS ? _iosBannerHomePosId   : _androidBannerHomePosId;
   static String get interstitialPosId => Platform.isIOS ? _iosInterstitialPosId : _androidInterstitialPosId;
   static String get detailBannerPosId => Platform.isIOS ? _iosDetailBannerPosId : _androidDetailBannerPosId;
+  static String get profileFeedPosId  => Platform.isIOS ? _iosProfileFeedPosId  : _androidProfileFeedPosId;
 
   // ── Flutter ↔ Native 通信通道 ────────────────────────────────────
   static const String methodChannel = 'com.billtrack/ad_method';

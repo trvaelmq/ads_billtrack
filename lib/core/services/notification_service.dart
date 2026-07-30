@@ -9,19 +9,16 @@ class NotificationService {
 
   static Future<void> init() async {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    // iOS 通知权限不在启动期申请：启动期弹通知弹窗会让 App 短暂 resign active，
+    // 导致原生侧 ATT 请求被系统静默丢弃（App Store 审核 Guideline 2.1 打回原因）。
+    // 改由 AppDelegate 在 ATT 授权流程结束后串行请求（requestNotificationPermissionIfNeeded）。
     const ios = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
     const settings = InitializationSettings(android: android, iOS: ios);
     await _plugin.initialize(settings);
-
-    // iOS 14+ 主动申请权限
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin>()
-        ?.requestPermissions(alert: true, badge: true, sound: true);
 
     debugPrint('[NotificationService] init done');
   }

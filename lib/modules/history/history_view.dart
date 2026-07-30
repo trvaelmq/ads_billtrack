@@ -161,10 +161,18 @@ class _UserCard extends StatelessWidget {
   final int recordCount;
   const _UserCard({required this.recordCount});
 
-  // 登录用户名称：优先昵称，其次用户名，都没有才回退「用户」
+  // 卡片 ID：优先用后端下发的 accountId，未登录/未下发时回退本地生成的 userId
+  String get _accountId {
+    final accountId = AuthService.to.userInfo.value?.accountId;
+    if (accountId != null && accountId.isNotEmpty) return accountId;
+    return StorageService.userId;
+  }
+
+  // 手机号（后端已脱敏返回，如 138****8000）；没有手机号时回退昵称/用户名/「用户」
   String get _displayName {
     final user = AuthService.to.userInfo.value;
     if (user == null) return '用户';
+    if (user.phone != null && user.phone!.isNotEmpty) return user.phone!;
     if (user.nickname.isNotEmpty) return user.nickname;
     if (user.username.isNotEmpty) return user.username;
     return '用户';
@@ -223,7 +231,7 @@ class _UserCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                'ID: ${StorageService.userId}',
+                'ID: $_accountId',
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,

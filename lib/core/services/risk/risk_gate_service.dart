@@ -19,6 +19,10 @@ typedef DeviceIdProvider = Future<String?> Function();
 class RiskGateService extends GetxService {
   static RiskGateService get to => Get.find();
 
+  /// 当前设备唯一标识，供注册/登录接口透传，与 /risk/decide、/risk/event 用同一个 deviceId
+  /// 才能按 deviceId 关联广告观看数。init() 完成前或获取失败时为 null。
+  String? get deviceId => _deviceId;
+
   static const _method = MethodChannel(AdConfig.methodChannel);
 
   final ApiClient _api;
@@ -97,15 +101,32 @@ class RiskGateService extends GetxService {
     required String adSlotId,
     required String adFormat,
   }) async {
+    final result = await decideDetailed(adSlotId: adSlotId, adFormat: adFormat);
+    return result.action;
+  }
+
+  /// 与 [decide] 逻辑一致，但返回完整 [DecisionResult]（含 BLOCK 时的拦截文案 message），
+  /// 供登录等需要向用户展示后端拦截原因的场景使用。
+  Future<DecisionResult> decideDetailed({
+    required String adSlotId,
+    required String adFormat,
+  }) async {
     final deviceId = _deviceId;
     debugPrint('[RiskGate] decide: adSlotId=$adSlotId adFormat=$adFormat deviceId=$deviceId');
     if (deviceId != null && _blacklist.contains(type: 'DEVICE', value: deviceId)) {
       debugPrint('[RiskGate] decide: local blacklist hit -> block, skip /risk/decide');
-      return RiskAction.block;
+      return DecisionResult(
+        action: RiskAction.block,
+        confidence: 1.0,
+        confidenceLevel: 'HIGH',
+        hitRuleIds: const <String>[],
+        requestId: '',
+        reason: 'BLACK_LISTED',
+      );
     }
     if (deviceId == null) {
       debugPrint('[RiskGate] decide: deviceId unavailable -> fail-open pass');
-      return RiskAction.pass;
+      return DecisionResult.passFallback('DEVICE_ID_UNAVAILABLE');
     }
 
     final body = _buildSignedBody(
@@ -124,16 +145,16 @@ class RiskGateService extends GetxService {
       if (data == null) {
         debugPrint(
             '[RiskGate] decide: empty response data (code=${res.code}, message=${res.message}) -> fail-open pass');
-        return RiskAction.pass;
+        return DecisionResult.passFallback('EMPTY_RESPONSE');
       }
       final result = DecisionResult.fromJson(data);
       debugPrint(
           '[RiskGate] decide: result action=${result.action} reason=${result.reason} '
           'confidence=${result.confidence}/${result.confidenceLevel} requestId=${result.requestId}');
-      return result.action;
+      return result;
     } catch (e) {
       debugPrint('[RiskGate] decide failed, fallback pass: $e');
-      return RiskAction.pass;
+      return DecisionResult.passFallback('CLIENT_ERROR');
     }
   }
 

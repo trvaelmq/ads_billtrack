@@ -37,6 +37,7 @@ class DecisionResult {
   final List<String> hitRuleIds;
   final String requestId;
   final String reason;
+  final String? message;
 
   const DecisionResult({
     required this.action,
@@ -45,6 +46,7 @@ class DecisionResult {
     required this.hitRuleIds,
     required this.requestId,
     required this.reason,
+    this.message,
   });
 
   factory DecisionResult.fromJson(Map<String, dynamic> json) => DecisionResult(
@@ -57,6 +59,7 @@ class DecisionResult {
             const <String>[],
         requestId: _str(json, 'requestId') ?? '',
         reason: _str(json, 'reason') ?? 'NORMAL',
+        message: _str(json, 'message'),
       );
 
   /// 网络异常/超时/签名失败时的本地降级结果。
