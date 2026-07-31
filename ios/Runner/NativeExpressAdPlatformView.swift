@@ -47,6 +47,7 @@ class NativeExpressContainerView: UIView {
     private weak var viewController: UIViewController?
     private let channel: FlutterMethodChannel
     private var nativeManager: SFNativeManager?
+    private var lastHeight: CGFloat?
 
     init(frame: CGRect, posId: String, adHeight: CGFloat, viewController: UIViewController, channel: FlutterMethodChannel) {
         self.posId = posId
@@ -54,6 +55,15 @@ class NativeExpressContainerView: UIView {
         self.viewController = viewController
         self.channel = channel
         super.init(frame: frame)
+        // 兜底：若渲染完成推送 resize 时 Dart 端 handler 还未注册好导致消息丢失，
+        // Dart 会在注册完成后主动查询一次当前高度
+        channel.setMethodCallHandler { [weak self] call, result in
+            if call.method == "queryHeight" {
+                result(self?.lastHeight.map { Double($0) } ?? -1)
+            } else {
+                result(FlutterMethodNotImplemented)
+            }
+        }
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -83,6 +93,7 @@ extension NativeExpressContainerView: SFNativeDelegate {
         nativeAdView.frame = CGRect(x: 0, y: 0, width: bounds.width, height: h)
         addSubview(nativeAdView)
         debugPrint("[NativeExpress] render 成功 height=\(h)")
+        lastHeight = h
         channel.invokeMethod("resize", arguments: Double(h))
     }
     func nativeAdDidFailed(_ error: Error) {
@@ -90,6 +101,7 @@ extension NativeExpressContainerView: SFNativeDelegate {
     }
     func nativeAdDidClose(withADView nativeAdView: UIView) {
         nativeAdView.removeFromSuperview()
+        lastHeight = 0
         channel.invokeMethod("resize", arguments: Double(0)) // 关闭后 Flutter 收起占位
     }
 }

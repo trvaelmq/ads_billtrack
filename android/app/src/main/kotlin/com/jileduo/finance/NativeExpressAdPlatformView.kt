@@ -45,12 +45,22 @@ class NativeExpressAdPlatformView(
 
     private val container = FrameLayout(activity)
     private var nativeInfo: MgNativeInfo? = null
+    private var lastHeight: Double? = null
 
     companion object {
         private val imageExecutor = Executors.newCachedThreadPool()
     }
 
     init {
+        // 兜底：若渲染完成推送 resize 时 Dart 端 handler 还未注册好导致消息丢失，
+        // Dart 会在注册完成后主动查询一次当前高度
+        channel.setMethodCallHandler { call, result ->
+            if (call.method == "queryHeight") {
+                result.success(lastHeight ?: -1.0)
+            } else {
+                result.notImplemented()
+            }
+        }
         Log.d("MG_AD", "flow PlatformView 创建 posId=$posId sdkReady=${MyApplication.sdkReady}")
         MyApplication.runWhenReady {
             Log.d("MG_AD", "flow 开始 loadFlow posId=$posId")
@@ -158,6 +168,7 @@ class NativeExpressAdPlatformView(
     private fun collapse() {
         container.removeAllViews()
         container.visibility = View.GONE
+        lastHeight = 0.0
         channel.invokeMethod("resize", 0.0)
     }
 
@@ -174,6 +185,7 @@ class NativeExpressAdPlatformView(
             if (hPx > 0) {
                 val hDp = hPx / metrics.density
                 Log.d("MG_AD", "flow reportHeight ${hDp}dp (px=$hPx w=$widthPx)")
+                lastHeight = hDp.toDouble()
                 channel.invokeMethod("resize", hDp.toDouble())
             }
         }

@@ -94,16 +94,17 @@ class ProfileView extends GetView<ProfileController> {
               ],
             ),
           ),
+          // 信息流广告（固定不滚动）
+          if (AdConfig.profileFeedPosId.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
+              child: NativeExpressAdWidget(posId: AdConfig.profileFeedPosId, height: 0),
+            ),
           // 可滚动列表区域
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-          if (AdConfig.profileFeedPosId.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-              child: NativeExpressAdWidget(posId: AdConfig.profileFeedPosId),
-            ),
           const SizedBox(height: 8),
           _SectionHeader(title: '财务工具'),
           _MenuItem(icon: Icons.bar_chart, label: '统计分析', subtitle: '查看收支分布和月度趋势',

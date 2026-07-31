@@ -17,15 +17,29 @@ class NativeExpressAdWidget extends StatefulWidget {
 }
 
 class _NativeExpressAdWidgetState extends State<NativeExpressAdWidget> {
-  late double _height = widget.height;
+  // UiKitView/AndroidView 创建时尺寸不能为 0，否则原生 view id 状态错乱，
+  // 后续 resize 变为非 0 时会抛 PlatformException(recreating_view)。
+  static const _minHeight = 1.0;
+
+  late double _height = widget.height < _minHeight ? _minHeight : widget.height;
 
   void _onPlatformViewCreated(int id) {
-    MethodChannel('com.billtrack/ad_view_$id').setMethodCallHandler((call) async {
+    final channel = MethodChannel('com.billtrack/ad_view_$id');
+    channel.setMethodCallHandler((call) async {
       if (call.method == 'resize') {
         final h = (call.arguments as num).toDouble();
         if (mounted && h >= 0 && h != _height) setState(() => _height = h);
       }
     });
+    // 原生渲染可能早于 handler 注册完成而丢失 resize 推送，主动查询一次兜底
+    _queryHeight(channel);
+  }
+
+  Future<void> _queryHeight(MethodChannel channel) async {
+    try {
+      final h = await channel.invokeMethod<double>('queryHeight');
+      if (mounted && h != null && h >= 0 && h != _height) setState(() => _height = h);
+    } catch (_) {}
   }
 
   @override
