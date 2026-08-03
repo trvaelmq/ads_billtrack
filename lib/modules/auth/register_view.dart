@@ -56,23 +56,6 @@ class RegisterView extends GetView<RegisterController> {
           ),
           const SizedBox(height: 16),
           TextField(
-            controller: controller.emailController,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              labelText: '邮箱（选填）',
-              prefixIcon: Icon(Icons.email_outlined),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: controller.nicknameController,
-            decoration: const InputDecoration(
-              labelText: '昵称（选填，默认取用户名）',
-              prefixIcon: Icon(Icons.badge_outlined),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
             controller: controller.invitationCodeController,
             decoration: const InputDecoration(
               labelText: '邀请码（选填）',

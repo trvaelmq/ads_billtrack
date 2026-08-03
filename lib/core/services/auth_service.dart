@@ -69,16 +69,12 @@ class AuthService extends GetxService {
     required String username,
     required String password,
     String? phone,
-    String? email,
-    String? nickname,
     String? invitationCode,
   }) async {
     final body = <String, dynamic>{
       'username': username,
       'password': password,
       if (phone != null && phone.isNotEmpty) 'phone': phone,
-      if (email != null && email.isNotEmpty) 'email': email,
-      if (nickname != null && nickname.isNotEmpty) 'nickname': nickname,
       if (invitationCode != null && invitationCode.isNotEmpty)
         'invitationCode': invitationCode,
       if (_deviceId != null) 'deviceId': _deviceId,

@@ -11,8 +11,6 @@ class RegisterController extends GetxController {
   final passwordController = TextEditingController();
   final confirmController = TextEditingController();
   final phoneController = TextEditingController();
-  final emailController = TextEditingController();
-  final nicknameController = TextEditingController();
   final invitationCodeController = TextEditingController();
   final loading = false.obs;
   final agreedToPrivacy = false.obs;
@@ -29,9 +27,7 @@ class RegisterController extends GetxController {
         AuthValidators.password(passwordController.text) ??
         AuthValidators.confirmPassword(
             passwordController.text, confirmController.text) ??
-        AuthValidators.phone(phoneController.text.trim()) ??
-        AuthValidators.email(emailController.text.trim()) ??
-        AuthValidators.nickname(nicknameController.text.trim());
+        AuthValidators.phone(phoneController.text.trim());
   }
 
   Future<void> submit() async {
@@ -45,8 +41,6 @@ class RegisterController extends GetxController {
       username: usernameController.text.trim(),
       password: passwordController.text,
       phone: phoneController.text.trim(),
-      email: emailController.text.trim(),
-      nickname: nicknameController.text.trim(),
       invitationCode: invitationCodeController.text.trim(),
     );
     loading.value = false;
@@ -65,8 +59,6 @@ class RegisterController extends GetxController {
     passwordController.dispose();
     confirmController.dispose();
     phoneController.dispose();
-    emailController.dispose();
-    nicknameController.dispose();
     invitationCodeController.dispose();
     super.onClose();
   }

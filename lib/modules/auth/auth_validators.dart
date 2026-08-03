@@ -3,7 +3,6 @@
 class AuthValidators {
   static final _usernameRe = RegExp(r'^[A-Za-z0-9_]{3,50}$');
   static final _phoneRe = RegExp(r'^1\d{10}$');
-  static final _emailRe = RegExp(r'^[\w.+-]+@[\w-]+(\.[\w-]+)+$');
 
   static String? username(String v) {
     if (v.isEmpty) return '请输入用户名';
@@ -25,17 +24,6 @@ class AuthValidators {
   static String? phone(String v) {
     if (v.isEmpty) return null;
     if (!_phoneRe.hasMatch(v)) return '手机号格式不正确';
-    return null;
-  }
-
-  static String? email(String v) {
-    if (v.isEmpty) return null;
-    if (!_emailRe.hasMatch(v)) return '邮箱格式不正确';
-    return null;
-  }
-
-  static String? nickname(String v) {
-    if (v.length > 50) return '昵称最长50个字符';
     return null;
   }
 }
