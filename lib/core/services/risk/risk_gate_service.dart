@@ -116,7 +116,7 @@ class RiskGateService extends GetxService {
       path: RiskConfig.eventPath,
       adSlotId: AdConfig.rewardedPosId,
       adFormat: RiskAdFormat.reward,
-      eventType: RiskEventType.conversion,
+      eventType: RiskEventType.view,
       extraSignals: const {'completionRate': 1.0},
     );
   }

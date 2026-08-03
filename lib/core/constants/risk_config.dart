@@ -25,5 +25,5 @@ class RiskEventType {
   static const String request = 'REQUEST';
   static const String impression = 'IMPRESSION';
   static const String click = 'CLICK';
-  static const String conversion = 'CONVERSION';
+  static const String view = 'VIEW';
 }
