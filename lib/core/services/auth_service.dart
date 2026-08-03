@@ -88,17 +88,17 @@ class AuthService extends GetxService {
           code: loginResult.code, message: '注册成功，自动登录失败，请手动登录');
     }
     final newUserId = userInfo.value?.id;
-    if (newUserId != null) _maybeStartPostRegistrationCooldown(newUserId);
+    if (newUserId != null) await _maybeStartPostRegistrationCooldown(newUserId);
     return loginResult;
   }
 
   /// 注册并自动登录成功后触发一次的广告冷却（R6）：仅注册流程触发，普通登录不受影响；
   /// 按 userId 记本地 flag 防止重复触发，AdService 未就绪时静默跳过。
-  void _maybeStartPostRegistrationCooldown(int userId) {
+  Future<void> _maybeStartPostRegistrationCooldown(int userId) async {
     if (!Get.isRegistered<AdService>()) return;
     final flagKey = 'post_reg_cooldown_$userId';
     if (StorageService.hasFlag(flagKey)) return;
-    StorageService.setFlag(flagKey);
+    await StorageService.setFlag(flagKey);
     AdService.to.startPostRegistrationCooldown();
   }
 

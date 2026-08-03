@@ -30,12 +30,32 @@ class StorageService {
     _prefs   = await SharedPreferences.getInstance();
   }
 
+  static Directory? _testHiveDir;
+
   static Future<void> initForTest() async {
     _prefs = await SharedPreferences.getInstance();
     // 单元测试环境没有 path_provider 插件实现，Hive.initFlutter() 会抛
     // MissingPluginException；改用 Hive.init(tempDir) 绕开插件依赖，
     // 让依赖 _adBox 的代码（如 AdService.onInit）在测试里也能正常跑。
+    //
+    // Hive 按 box 名缓存已打开的实例：同一进程内重复调用 initForTest()
+    // 时若不先关闭旧 box，Hive.openBox 会直接返回第一次那个仍指向旧临时
+    // 目录、带着旧数据的实例，导致同一测试文件里前后用例互相污染。
+    // 因此每次都显式关闭上一次打开的 box、清理上一次的临时目录，再在全新
+    // 路径下打开一个全新的空 box，保证每个测试拿到干净的 _adBox。
+    if (Hive.isBoxOpen('ad_records_test')) {
+      await Hive.box<AdRecord>('ad_records_test').close();
+    }
+    final oldDir = _testHiveDir;
+    if (oldDir != null && oldDir.existsSync()) {
+      try {
+        oldDir.deleteSync(recursive: true);
+      } catch (_) {
+        // 忽略清理失败，不影响测试本身
+      }
+    }
     final dir = Directory.systemTemp.createTempSync('ads_billtrack_test_hive_');
+    _testHiveDir = dir;
     Hive.init(dir.path);
     if (!Hive.isAdapterRegistered(AdRecordAdapter().typeId)) {
       Hive.registerAdapter(AdRecordAdapter());
