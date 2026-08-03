@@ -7,6 +7,7 @@ class UserInfo {
   final String? phone;
   final String? email;
   final String? accountId;
+  final String? invitationCode;
 
   const UserInfo({
     required this.id,
@@ -16,6 +17,7 @@ class UserInfo {
     this.phone,
     this.email,
     this.accountId,
+    this.invitationCode,
   });
 
   factory UserInfo.fromJson(Map<String, dynamic> json) => UserInfo(
@@ -26,6 +28,7 @@ class UserInfo {
         phone: json['phone'] as String?,
         email: json['email'] as String?,
         accountId: json['accountId'] as String?,
+        invitationCode: json['invitationCode'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -36,5 +39,6 @@ class UserInfo {
         'phone': phone,
         'email': email,
         'accountId': accountId,
+        'invitationCode': invitationCode,
       };
 }

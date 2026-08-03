@@ -148,11 +148,13 @@ class _UserCard extends StatelessWidget {
     return StorageService.userId;
   }
 
-  // 手机号（后端已脱敏返回，如 138****8000）；没有手机号时回退昵称/用户名/「用户」
+  // 邀请码；没有邀请码时回退昵称/用户名/「用户」（不再展示手机号）
   String get _displayName {
     final user = AuthService.to.userInfo.value;
     if (user == null) return '用户';
-    if (user.phone != null && user.phone!.isNotEmpty) return user.phone!;
+    if (user.invitationCode != null && user.invitationCode!.isNotEmpty) {
+      return '邀请码 ${user.invitationCode}';
+    }
     if (user.nickname.isNotEmpty) return user.nickname;
     if (user.username.isNotEmpty) return user.username;
     return '用户';
