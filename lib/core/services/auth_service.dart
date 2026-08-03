@@ -5,6 +5,7 @@ import '../../router/app_pages.dart';
 import '../constants/risk_config.dart';
 import '../network/api_client.dart';
 import '../network/api_result.dart';
+import 'ad_service.dart';
 import 'risk/risk_gate_service.dart';
 import 'risk/risk_models.dart';
 import 'storage_service.dart';
@@ -86,7 +87,19 @@ class AuthService extends GetxService {
       return ApiResult(
           code: loginResult.code, message: '注册成功，自动登录失败，请手动登录');
     }
+    final newUserId = userInfo.value?.id;
+    if (newUserId != null) _maybeStartPostRegistrationCooldown(newUserId);
     return loginResult;
+  }
+
+  /// 注册并自动登录成功后触发一次的广告冷却（R6）：仅注册流程触发，普通登录不受影响；
+  /// 按 userId 记本地 flag 防止重复触发，AdService 未就绪时静默跳过。
+  void _maybeStartPostRegistrationCooldown(int userId) {
+    if (!Get.isRegistered<AdService>()) return;
+    final flagKey = 'post_reg_cooldown_$userId';
+    if (StorageService.hasFlag(flagKey)) return;
+    StorageService.setFlag(flagKey);
+    AdService.to.startPostRegistrationCooldown();
   }
 
   /// 操作前登录闸门：已登录直接放行；未登录弹确认框，

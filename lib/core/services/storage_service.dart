@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -31,6 +32,15 @@ class StorageService {
 
   static Future<void> initForTest() async {
     _prefs = await SharedPreferences.getInstance();
+    // 单元测试环境没有 path_provider 插件实现，Hive.initFlutter() 会抛
+    // MissingPluginException；改用 Hive.init(tempDir) 绕开插件依赖，
+    // 让依赖 _adBox 的代码（如 AdService.onInit）在测试里也能正常跑。
+    final dir = Directory.systemTemp.createTempSync('ads_billtrack_test_hive_');
+    Hive.init(dir.path);
+    if (!Hive.isAdapterRegistered(AdRecordAdapter().typeId)) {
+      Hive.registerAdapter(AdRecordAdapter());
+    }
+    _adBox = await Hive.openBox<AdRecord>('ad_records_test');
   }
 
   // ── 用户信息 ──────────────────────────────────────────────────────

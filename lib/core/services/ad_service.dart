@@ -210,9 +210,17 @@ class AdService extends GetxService {
     _startCooldown();
   }
 
-  void _startCooldown() {
+  /// 激励视频看完后的冷却：45~90 秒随机。
+  void _startCooldown() => _runCooldown(minSeconds: 45, maxSeconds: 90);
+
+  /// 注册并自动登录成功后触发一次的冷却：90~120 秒随机，避免刚注册即刷广告。
+  void startPostRegistrationCooldown() =>
+      _runCooldown(minSeconds: 90, maxSeconds: 120);
+
+  void _runCooldown({required int minSeconds, required int maxSeconds}) {
     _cooldownTimer?.cancel();
-    final seconds = 45 + Random().nextInt(46); // 45~90 秒随机
+    final span = maxSeconds - minSeconds + 1;
+    final seconds = minSeconds + Random().nextInt(span);
     debugPrint('[AdService] cooldown started: ${seconds}s');
     cooldownRemaining.value = seconds;
     _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
