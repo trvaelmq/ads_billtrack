@@ -37,6 +37,8 @@
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>用于发现和连接局域网设备</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>我们使用您的位置信息来展示更符合您所在地区的广告内容</string>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>我们使用设备标识符向您展示更相关的广告，以支持应用的免费使用。</string>
 	<key>SKAdNetworkItems</key>
