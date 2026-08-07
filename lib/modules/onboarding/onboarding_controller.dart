@@ -1,11 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/services/storage_service.dart';
 import '../../router/app_pages.dart';
 
 class OnboardingController extends GetxController {
-  final nameController = TextEditingController();
   final agreedToPrivacy = false.obs;
 
   Future<void> openPrivacyPolicy() async {
@@ -17,16 +15,8 @@ class OnboardingController extends GetxController {
 
   Future<void> confirm() async {
     if (!agreedToPrivacy.value) return;
-    final name = nameController.text.trim();
-    await StorageService.setNickname(name.isEmpty ? '用户' : name);
     await StorageService.setJoinDate();
     await StorageService.setFirstLaunchDone();
     Get.offAllNamed(Routes.main);
-  }
-
-  @override
-  void onClose() {
-    nameController.dispose();
-    super.onClose();
   }
 }

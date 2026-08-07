@@ -4,6 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../constants/ad_config.dart';
+import '../utils/app_dialogs.dart';
+import '../../router/app_pages.dart';
+import 'auth_service.dart';
 import 'risk/risk_gate_service.dart';
 import 'risk/risk_models.dart';
 import 'storage_service.dart';
@@ -36,6 +39,17 @@ class AdService extends GetxService {
     todayWatchCount.value = StorageService.todayAdRecords.length;
     _event.receiveBroadcastStream().listen(_onAdEvent);
     loadRewardedAd();
+    // App 重新打开：本地冷却计时在杀进程后会丢失，调一次 /risk/check 按后端权威状态恢复冷却。
+    _syncCooldownFromCheck();
+  }
+
+  /// 拉一次 /risk/check 同步冷却状态，不触发广告流程、不弹提示（用于 App 启动时静默对齐）。
+  Future<void> _syncCooldownFromCheck() async {
+    if (!Get.isRegistered<RiskGateService>()) return;
+    final result = await RiskGateService.to.checkAdAvailability();
+    if (result.action == RiskAction.stop && result.resetInSeconds != null) {
+      _runCooldown(minSeconds: result.resetInSeconds!, maxSeconds: result.resetInSeconds!);
+    }
   }
 
   Future<void> initAdSdk() async {
@@ -112,12 +126,40 @@ class AdService extends GetxService {
   /// 固定 3 秒延迟，用于流程各节点之间的间隔
   Duration _randomDelay() => const Duration(seconds: 3);
 
-  /// 点击"看激励视频"时调用：延迟3秒弹插屏，插屏关闭后再延迟3秒弹激励
-  void startRewardedAdFlow() {
+  /// 点击"看激励视频"时调用：先问一次风控 /risk/check 是否可以看，
+  /// 放行才延迟3秒弹插屏，插屏关闭后再延迟3秒弹激励；STOP 用返回的 resetInSeconds 冷却。
+  Future<void> startRewardedAdFlow() async {
     if (_rewardedFlowInProgress) return; // 流程进行中，忽略重复点击
     _rewardedFlowInProgress = true;
-    _interstitialIsPreRewarded = true;
-    _preRewardedTimer = Timer(_randomDelay(), showInterstitialAd);
+    final result = await RiskGateService.to.checkAdAvailability();
+    switch (result.action) {
+      case RiskAction.stop:
+        debugPrint('[AdService] ad denied by risk check: ${result.action} ${result.reason}');
+        if (result.message != null) {
+          AppDialogs.showRiskStop(result.message!);
+        }
+        _runCooldown(
+          minSeconds: result.resetInSeconds ?? 45,
+          maxSeconds: result.resetInSeconds ?? 90,
+        );
+        _rewardedFlowInProgress = false;
+        return;
+      case RiskAction.block:
+        debugPrint('[AdService] ad denied by risk check, forcing logout: ${result.reason}');
+        _rewardedFlowInProgress = false;
+        await _forceLogout();
+        return;
+      case RiskAction.throttle:
+        debugPrint('[AdService] ad denied by risk check: ${result.action} ${result.reason}');
+        _startCooldown();
+        _rewardedFlowInProgress = false;
+        return;
+      case RiskAction.pass:
+      case RiskAction.review:
+      case RiskAction.shadow:
+        _interstitialIsPreRewarded = true;
+        _preRewardedTimer = Timer(_randomDelay(), showInterstitialAd);
+    }
   }
 
   void _endRewardedFlow() {
@@ -159,12 +201,11 @@ class AdService extends GetxService {
       case 'rewarded.rewarded':
         _onRewardedCompleted();
         break;
-      // 激励视频关闭（无论是否看完）：重新加载备用 + 跳历史页
+      // 激励视频关闭（无论是否看完）：重新加载备用，留在当前页
       case 'rewarded.closed':
-        debugPrint('[AdService] rewarded.closed: reload + navigate to /history (返回时不再弹插屏)');
+        debugPrint('[AdService] rewarded.closed: reload (返回时不再弹插屏，不跳转)');
         _endRewardedFlow();
         loadRewardedAd();
-        Get.toNamed('/history');
         break;
 
       // 开屏：不记录
@@ -189,25 +230,55 @@ class AdService extends GetxService {
     }
   }
 
-  /// 激励视频看完时调用一次风控，BLOCK/THROTTLE 则不发奖励，仍进入冷却避免立即重试。
+  /// 激励视频看完即记一条观看记录（不依赖风控结果，看了就算看了）；
+  /// 之后再调一次风控决定冷却时长：BLOCK 由后端删 token 下线账号，App 强制登出；
+  /// THROTTLE/STOP（达到上限）进冷却，不影响登录态、不影响已记的观看记录。
   Future<void> _onRewardedCompleted() async {
-    debugPrint('[AdService] rewarded.rewarded: checking risk gate before granting reward');
+    debugPrint('[AdService] rewarded.rewarded: recording watch, then checking risk gate');
+    await _recordWatch();
     final result = await RiskGateService.to.checkRewardCompletion();
-    if (result.action.isBlocked) {
-      debugPrint(
-          '[AdService] reward denied by risk gate: ${result.action} ${result.reason}');
-      _startCooldown();
-      return;
+    switch (result.action) {
+      case RiskAction.block:
+        debugPrint(
+            '[AdService] reward blocked by risk gate, forcing logout: ${result.reason}');
+        await _forceLogout();
+        return;
+      case RiskAction.throttle:
+        debugPrint(
+            '[AdService] reward denied by risk gate: ${result.action} ${result.reason}');
+        _startCooldown();
+        return;
+      case RiskAction.stop:
+        debugPrint(
+            '[AdService] reward denied by risk gate: ${result.action} ${result.reason}');
+        if (result.message != null) {
+          AppDialogs.showRiskStop(result.message!);
+        }
+        _runCooldown(
+          minSeconds: result.resetInSeconds ?? 45,
+          maxSeconds: result.resetInSeconds ?? 90,
+        );
+        return;
+      case RiskAction.pass:
+      case RiskAction.review:
+      case RiskAction.shadow:
+        _startCooldown();
     }
-    debugPrint(
-        '[AdService] reward allowed by risk gate: ${result.action} ${result.reason}, recording...');
-    await _recordRewarded();
   }
 
-  Future<void> _recordRewarded() async {
+  /// BLOCK 时后端已删除 token：清本地登录态，不依赖 401 拦截器的静默清理。
+  /// App 本身支持游客态浏览，不强制跳登录页，只保留 main 作为底层路由，退回未登录态即可；
+  /// 后续再触发需要登录的操作时，走 ensureLoggedIn 闸门正常弹登录。
+  Future<void> _forceLogout() async {
+    if (Get.isRegistered<AuthService>()) {
+      await AuthService.to.logout();
+    }
+    await Get.offAllNamed(Routes.main);
+  }
+
+  Future<void> _recordWatch() async {
     await StorageService.saveAdRecord('rewarded');
     todayWatchCount.value = StorageService.todayAdRecords.length;
-    _startCooldown();
   }
 
   /// 激励视频看完后的冷却：45~90 秒随机。

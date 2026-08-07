@@ -160,6 +160,7 @@ import CoreTelephony
             "systemVersion": UIDevice.current.systemVersion,
             "simPresent": !carriers.isEmpty,
             "simCarrier": carriers.first?.carrierName ?? NSNull(),
+            "idfv": UIDevice.current.identifierForVendor?.uuidString ?? NSNull(),
         ]
     }
 }

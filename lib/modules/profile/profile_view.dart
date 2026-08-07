@@ -47,29 +47,18 @@ class ProfileView extends GetView<ProfileController> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: GestureDetector(
-                    onTap: () async {
-                      if (!await AuthService.to.ensureLoggedIn(message: '修改资料需要登录，是否前往登录？')) return;
-                      controller.editNickname();
-                    },
-                    child: Column(
+                  child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Obx(() {
-                              final auth = AuthService.to;
-                              final info = auth.userInfo.value;
-                              final name = auth.isLoggedIn.value && info != null
-                                  ? (info.nickname.isNotEmpty ? info.nickname : info.username)
-                                  : controller.nickname.value;
-                              return Text(name,
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20));
-                            }),
-                            const SizedBox(width: 6),
-                            const Icon(Icons.edit, color: Colors.white54, size: 16),
-                          ],
-                        ),
+                        Obx(() {
+                          final auth = AuthService.to;
+                          final info = auth.userInfo.value;
+                          final name = auth.isLoggedIn.value && info != null
+                              ? (info.nickname.isNotEmpty ? info.nickname : info.username)
+                              : '未登录用户';
+                          return Text(name,
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20));
+                        }),
                         Text(
                           '加入于 ${DateFormat('yyyy年MM月').format(DateTime.parse(controller.joinDate))}',
                           style: const TextStyle(color: Colors.white70, fontSize: 13),
@@ -89,7 +78,6 @@ class ProfileView extends GetView<ProfileController> {
                         }),
                       ],
                     ),
-                  ),
                 ),
               ],
             ),

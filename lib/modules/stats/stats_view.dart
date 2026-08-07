@@ -126,7 +126,7 @@ class _ExpensePieChartState extends State<_ExpensePieChart> {
         return;
       }
       if (!ad.isRewardedReady.value) ad.loadRewardedAd(); // 兜底加载
-      ad.startRewardedAdFlow();
+      await ad.startRewardedAdFlow();
     } finally {
       _triggering = false;
     }

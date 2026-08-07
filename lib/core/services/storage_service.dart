@@ -70,8 +70,6 @@ class StorageService {
   static bool   get privacyAccepted => _prefs.getBool('privacy_accepted') ?? false;
   static Future<void> setPrivacyAccepted() => _prefs.setBool('privacy_accepted', true);
 
-  static bool   get isProfileSet   => nickname != '用户';
-
   /// 设备唯一 ID：首次生成后永久存储，格式 前2位字母 + 后6位数字，如 AB123456
   /// 用 UUID v4 的哈希值做种子，碰撞概率极低
   static String get userId {
@@ -88,9 +86,6 @@ class StorageService {
     _prefs.setString('user_id', id);
     return id;
   }
-
-  static String get nickname => _prefs.getString('nickname') ?? '用户';
-  static Future<void> setNickname(String v) => _prefs.setString('nickname', v);
 
   static String get joinDate => _prefs.getString('join_date') ?? DateTime.now().toIso8601String();
   static Future<void> setJoinDate() async {

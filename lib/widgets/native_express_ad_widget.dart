@@ -70,10 +70,8 @@ class _NativeExpressAdWidgetState extends State<NativeExpressAdWidget> {
       );
     }
     if (platformView == null) return const SizedBox.shrink();
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-      child: SizedBox(height: _height, child: platformView),
-    );
+    // 不做尺寸过渡动画：原生内容一到位就同帧摆好容器高度，避免动画期间
+    // 内容已撑到位、容器还在过渡导致的视觉溢出。
+    return SizedBox(height: _height, child: platformView);
   }
 }

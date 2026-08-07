@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../data/models/user_info.dart';
@@ -21,12 +22,30 @@ class AuthService extends GetxService {
   final isLoggedIn = false.obs;
   final userInfo = Rxn<UserInfo>();
 
+  /// 登录时命中风控 STOP（不拦截登录，仅提示）时的后端文案，登录成功后展示一次。
+  final riskStopMessage = Rxn<String>();
+
   String? _token;
 
   /// 与风控 SDK 用同一个 deviceId，注册/登录时透传给后端，
   /// 用于按 deviceId 关联广告观看数。RiskGateService 未就绪时为 null。
   String? get _deviceId =>
       Get.isRegistered<RiskGateService>() ? RiskGateService.to.deviceId : null;
+
+  /// 设备机型，注册/登录时透传给后端。RiskGateService 未就绪时为 null。
+  String? get _deviceModel =>
+      Get.isRegistered<RiskGateService>() ? RiskGateService.to.deviceModel : null;
+
+  /// 系统版本，注册/登录时透传给后端；原生侧只给纯数字（如 17.4），这里按平台拼成
+  /// "iOS 17.4" / "Android 14"，避免后端拿到裸数字分不清平台。RiskGateService 未就绪时为 null。
+  String? get _systemVersion {
+    if (!Get.isRegistered<RiskGateService>()) return null;
+    final version = RiskGateService.to.systemVersion;
+    if (version == null) return null;
+    if (Platform.isIOS) return 'iOS $version';
+    if (Platform.isAndroid) return 'Android $version';
+    return version;
+  }
 
   @override
   void onInit() {
@@ -79,6 +98,8 @@ class AuthService extends GetxService {
       if (invitationCode != null && invitationCode.isNotEmpty)
         'invitationCode': invitationCode,
       if (_deviceId != null) 'deviceId': _deviceId,
+      if (_deviceModel != null) 'deviceModel': _deviceModel,
+      if (_systemVersion != null) 'systemVersion': _systemVersion,
     };
     final result = await _api.postJson<void>('/api/auth/register', body);
     if (!result.success) return result;
@@ -123,13 +144,18 @@ class AuthService extends GetxService {
   }
 
   /// 点登录按钮时先做风控校验：命中 BLOCK/THROTTLE 直接拦截，不发登录请求；
+  /// 命中 STOP 不拦截登录，只记下文案供登录成功后提示一次；
   /// 风控服务未就绪或异常一律降级放行（不阻断正常登录）。
   Future<ApiResult<void>?> _riskGateLogin() async {
+    riskStopMessage.value = null;
     if (!Get.isRegistered<RiskGateService>()) return null;
     final result = await RiskGateService.to.decideDetailed(
       adSlotId: RiskConfig.loginSlotId,
       adFormat: RiskAdFormat.login,
     );
+    if (result.action == RiskAction.stop) {
+      riskStopMessage.value = result.message ?? '当前操作触发风控限制';
+    }
     if (!result.action.isBlocked) return null;
     return ApiResult(code: -1, message: result.message ?? '登录失败，请稍后重试');
   }
@@ -143,6 +169,8 @@ class AuthService extends GetxService {
         'username': username,
         'password': password,
         if (_deviceId != null) 'deviceId': _deviceId,
+        if (_deviceModel != null) 'deviceModel': _deviceModel,
+        if (_systemVersion != null) 'systemVersion': _systemVersion,
       },
       parser: (d) => d as Map<String, dynamic>,
     );

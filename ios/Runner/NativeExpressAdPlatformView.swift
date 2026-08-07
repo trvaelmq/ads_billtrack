@@ -48,6 +48,7 @@ class NativeExpressContainerView: UIView {
     private let channel: FlutterMethodChannel
     private var nativeManager: SFNativeManager?
     private var lastHeight: CGFloat?
+    private var heightObservation: NSKeyValueObservation?
 
     init(frame: CGRect, posId: String, adHeight: CGFloat, viewController: UIViewController, channel: FlutterMethodChannel) {
         self.posId = posId
@@ -67,6 +68,8 @@ class NativeExpressContainerView: UIView {
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    deinit { heightObservation?.invalidate() }
 
     override func layoutSubviews() {
         super.layoutSubviews()
@@ -93,15 +96,26 @@ extension NativeExpressContainerView: SFNativeDelegate {
         nativeAdView.frame = CGRect(x: 0, y: 0, width: bounds.width, height: h)
         addSubview(nativeAdView)
         debugPrint("[NativeExpress] render 成功 height=\(h)")
-        lastHeight = h
-        channel.invokeMethod("resize", arguments: Double(h))
+        updateHeight(h)
+        // 图片等素材可能异步加载完成后才把内容撑高，持续监听渲染视图尺寸变化，
+        // 每次变化都重新同步高度给 Flutter，而不是只在渲染成功那一刻测一次。
+        heightObservation = nativeAdView.layer.observe(\.bounds, options: [.new]) { [weak self] layer, _ in
+            self?.updateHeight(layer.bounds.height)
+        }
     }
     func nativeAdDidFailed(_ error: Error) {
         debugPrint("[NativeExpress] 加载失败 \(error.localizedDescription)")
     }
     func nativeAdDidClose(withADView nativeAdView: UIView) {
+        heightObservation?.invalidate()
+        heightObservation = nil
         nativeAdView.removeFromSuperview()
-        lastHeight = 0
-        channel.invokeMethod("resize", arguments: Double(0)) // 关闭后 Flutter 收起占位
+        updateHeight(0)
+    }
+
+    private func updateHeight(_ h: CGFloat) {
+        guard h != lastHeight else { return }
+        lastHeight = h
+        channel.invokeMethod("resize", arguments: Double(h))
     }
 }

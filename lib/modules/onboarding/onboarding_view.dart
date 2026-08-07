@@ -28,22 +28,6 @@ class OnboardingView extends GetView<OnboardingController> {
               // const Text('随手记账，看广告解锁更多功能',
               //     style: TextStyle(color: Colors.white70, fontSize: 15)),
               const SizedBox(height: 48),
-              TextField(
-                controller: controller.nameController,
-                style: const TextStyle(color: Colors.white, fontSize: 18),
-                decoration: InputDecoration(
-                  hintText: '输入你的昵称',
-                  hintStyle: const TextStyle(color: Colors.white54),
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.15),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                  prefixIcon: const Icon(Icons.person_outline, color: Colors.white70),
-                ),
-              ),
-              const SizedBox(height: 24),
               Obx(() => SizedBox(
                 width: double.infinity,
                 height: 52,

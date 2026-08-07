@@ -4,6 +4,7 @@ class RiskConfig {
 
   static const String decidePath = '/risk/decide';
   static const String eventPath = '/risk/event';
+  static const String checkPath = '/risk/check';
 
   /// 登录风控校验使用的 adSlotId，非广告位，用于在 /risk/decide 中区分"登录"场景。
   /// TODO(后端): 确认登录场景下 adSlotId/adFormat 的约定取值。

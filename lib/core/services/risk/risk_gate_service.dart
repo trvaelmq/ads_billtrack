@@ -19,6 +19,12 @@ class RiskGateService extends GetxService {
   /// 才能按 deviceId 关联观看数据。init() 完成前或获取失败时为 null。
   String? get deviceId => _deviceId;
 
+  /// 设备机型（如 iPhone14,2），供注册/登录接口透传。init() 完成前或获取失败时为 null。
+  String? get deviceModel => _deviceSignals?['deviceModel'] as String?;
+
+  /// 系统版本（如 iOS 17.4 / Android 14），供注册/登录接口透传。init() 完成前或获取失败时为 null。
+  String? get systemVersion => _deviceSignals?['systemVersion'] as String?;
+
   static const _method = MethodChannel(AdConfig.methodChannel);
 
   final ApiClient _api;
@@ -109,6 +115,18 @@ class RiskGateService extends GetxService {
     );
   }
 
+  /// 点击"看激励视频"前调用一次：调 /risk/check 决定当前是否可以看广告。
+  /// 参数和响应形状与 [decideDetailed] 一致，额外带 resetInSeconds 倒计时
+  /// （PASS 时为 45~90 随机值，STOP 时为距明日 0 点秒数），供本地冷却计时对齐后端。
+  Future<DecisionResult> checkAdAvailability() {
+    return _request(
+      path: RiskConfig.checkPath,
+      adSlotId: AdConfig.rewardedPosId,
+      adFormat: RiskAdFormat.reward,
+      eventType: RiskEventType.request,
+    );
+  }
+
   /// 激励视频看完时调用一次：调 /risk/event 决定是否放行奖励发放。
   /// BLOCK/THROTTLE 时调用方应跳过发奖励；其余动作视为可以发放。
   Future<DecisionResult> checkRewardCompletion() {
@@ -149,6 +167,10 @@ class RiskGateService extends GetxService {
         body,
         parser: (d) => d as Map<String, dynamic>,
       );
+      if (!res.success) {
+        throw Exception(
+            'risk request failed: code=${res.code} message=${res.message}');
+      }
       final data = res.data;
       if (data == null) {
         debugPrint(
@@ -184,8 +206,8 @@ class RiskGateService extends GetxService {
     final ip = await _getLocalIp();
     final deviceSignals = _deviceSignals;
     final signals = <String, dynamic>{
-      // idfv 字段沿用与 deviceId 相同的取值（iOS: IDFV，Android: OAID/AndroidID）
-      'idfv': deviceId,
+      // idfv：iOS 为真实 identifierForVendor（无需 ATT 授权）；Android 无此概念，取不到时不传。
+      if (deviceSignals?['idfv'] != null) 'idfv': deviceSignals!['idfv'],
       if (deviceSignals?['deviceModel'] != null)
         'deviceModel': deviceSignals!['deviceModel'],
       if (deviceSignals?['systemVersion'] != null)
