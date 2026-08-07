@@ -32,6 +32,7 @@ screenshots/
 test/
 web/
 windows/
+docs/superpowers/
 
 # Flutter/Dart/Pub related
 **/doc/api/
