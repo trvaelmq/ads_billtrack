@@ -154,11 +154,18 @@ import CoreTelephony
         let deviceModel = withUnsafePointer(to: &systemInfo.machine) {
             $0.withMemoryRebound(to: CChar.self, capacity: 1) { String(cString: $0) }
         }
-        let carriers = CTTelephonyNetworkInfo().serviceSubscriberCellularProviders?.values ?? [:].values
+        let telephonyInfo = CTTelephonyNetworkInfo()
+        let carriers = telephonyInfo.serviceSubscriberCellularProviders?.values ?? [:].values
+        // simPresent 不能用 serviceSubscriberCellularProviders 是否为空判断：只要设备有蜂窝模块，
+        // 不管有没有插卡这个字典都非空（未插卡的 slot 里 CTCarrier 字段全是 nil，但条目本身还在），
+        // 导致几乎所有 iPhone 都被误判为已插卡。改用 serviceCurrentRadioAccessTechnology——
+        // 只有 SIM 真正注册上蜂窝网络才会有值，没插卡的 slot 永远不会出现在这个字典里。
+        // 已知取舍：飞行模式/完全无信号时，插着卡也会被判为未插卡，属于尽力而为。
+        let simPresent = !(telephonyInfo.serviceCurrentRadioAccessTechnology?.values.isEmpty ?? true)
         return [
             "deviceModel": deviceModel,
             "systemVersion": UIDevice.current.systemVersion,
-            "simPresent": !carriers.isEmpty,
+            "simPresent": simPresent,
             "simCarrier": carriers.first?.carrierName ?? NSNull(),
             "idfv": UIDevice.current.identifierForVendor?.uuidString ?? NSNull(),
         ]

@@ -212,8 +212,8 @@ class RiskGateService extends GetxService {
         'deviceModel': deviceSignals!['deviceModel'],
       if (deviceSignals?['systemVersion'] != null)
         'systemVersion': deviceSignals!['systemVersion'],
-      if (deviceSignals?['simPresent'] != null)
-        'simPresent': deviceSignals!['simPresent'],
+      // simPresent 是必填字段（api.md），getDeviceSignals 取不到时兜底传 false，不能整个省略。
+      'simPresent': deviceSignals?['simPresent'] as bool? ?? false,
       if (deviceSignals?['simCarrier'] != null)
         'simCarrier': deviceSignals!['simCarrier'],
       if (extraSignals != null) ...extraSignals,
