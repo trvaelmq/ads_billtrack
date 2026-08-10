@@ -38,10 +38,11 @@ class ApiClient extends GetConnect {
 
   Future<ApiResult<T>> getJson<T>(
     String path, {
+    Map<String, dynamic>? query,
     T Function(dynamic data)? parser,
   }) async {
     try {
-      final resp = await get(path);
+      final resp = await get(path, query: query);
       return _handle(resp, parser);
     } catch (_) {
       return ApiResult<T>.networkError();
