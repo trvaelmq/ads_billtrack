@@ -1,9 +1,11 @@
 import 'package:get/get.dart';
-import '../../core/services/storage_service.dart';
-import '../../data/models/ad_record.dart';
+import '../../core/services/risk/risk_gate_service.dart';
+import '../../core/services/risk/risk_models.dart';
 
 class HistoryController extends GetxController {
-  final records = <AdRecord>[].obs;
+  final records = <AdViewRecord>[].obs;
+  final isLoading = false.obs;
+  final hasError = false.obs;
 
   @override
   void onInit() {
@@ -11,7 +13,16 @@ class HistoryController extends GetxController {
     loadRecords();
   }
 
-  void loadRecords() => records.value = StorageService.adRecords;
-
-  int get todayCount => StorageService.todayAdRecords.length;
+  Future<void> loadRecords() async {
+    isLoading.value = true;
+    hasError.value = false;
+    try {
+      final result = await RiskGateService.to.fetchAdViews();
+      records.value = result.records;
+    } catch (_) {
+      hasError.value = true;
+    } finally {
+      isLoading.value = false;
+    }
+  }
 }
