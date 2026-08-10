@@ -139,6 +139,25 @@ class RiskGateService extends GetxService {
     );
   }
 
+  /// 拉取当前账号的广告观看记录（历史页用）。limit 默认 200，与后端一致。
+  /// 请求失败/响应异常时抛异常，由调用方（HistoryController）决定如何提示。
+  Future<AdViewRecordsResult> fetchAdViews({int limit = 200}) async {
+    final res = await _api.getJson<Map<String, dynamic>>(
+      RiskConfig.adViewsPath,
+      query: {'limit': '$limit'},
+      parser: (d) => d as Map<String, dynamic>,
+    );
+    if (!res.success) {
+      throw Exception(
+          'fetchAdViews failed: code=${res.code} message=${res.message}');
+    }
+    final data = res.data;
+    if (data == null) {
+      throw Exception('fetchAdViews: empty response data');
+    }
+    return AdViewRecordsResult.fromJson(data);
+  }
+
   Future<DecisionResult> _request({
     required String path,
     required String adFormat,
