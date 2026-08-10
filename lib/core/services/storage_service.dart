@@ -1,18 +1,15 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../../data/models/bill_record.dart';
-import '../../data/models/ad_record.dart';
 import '../../data/models/recurring_rule.dart';
 import '../../data/models/health_score_history.dart';
 import '../../data/models/account_record.dart';
 
 class StorageService {
   static late Box<BillRecord> _billBox;
-  static late Box<AdRecord>   _adBox;
   static late Box<RecurringRule> _recurringBox;
   static late Box<AccountRecord> _accountBox;
   static late SharedPreferences _prefs;
@@ -20,47 +17,12 @@ class StorageService {
   static Future<void> init() async {
     await Hive.initFlutter();
     Hive.registerAdapter(BillRecordAdapter());
-    Hive.registerAdapter(AdRecordAdapter());
     Hive.registerAdapter(RecurringRuleAdapter());
     Hive.registerAdapter(AccountRecordAdapter());
     _billBox       = await Hive.openBox<BillRecord>('bill_records');
-    _adBox         = await Hive.openBox<AdRecord>('ad_records');
     _recurringBox  = await Hive.openBox<RecurringRule>('recurring_rules');
     _accountBox    = await Hive.openBox<AccountRecord>('accounts');
     _prefs   = await SharedPreferences.getInstance();
-  }
-
-  static Directory? _testHiveDir;
-
-  static Future<void> initForTest() async {
-    _prefs = await SharedPreferences.getInstance();
-    // 单元测试环境没有 path_provider 插件实现，Hive.initFlutter() 会抛
-    // MissingPluginException；改用 Hive.init(tempDir) 绕开插件依赖，
-    // 让依赖 _adBox 的代码（如 AdService.onInit）在测试里也能正常跑。
-    //
-    // Hive 按 box 名缓存已打开的实例：同一进程内重复调用 initForTest()
-    // 时若不先关闭旧 box，Hive.openBox 会直接返回第一次那个仍指向旧临时
-    // 目录、带着旧数据的实例，导致同一测试文件里前后用例互相污染。
-    // 因此每次都显式关闭上一次打开的 box、清理上一次的临时目录，再在全新
-    // 路径下打开一个全新的空 box，保证每个测试拿到干净的 _adBox。
-    if (Hive.isBoxOpen('ad_records_test')) {
-      await Hive.box<AdRecord>('ad_records_test').close();
-    }
-    final oldDir = _testHiveDir;
-    if (oldDir != null && oldDir.existsSync()) {
-      try {
-        oldDir.deleteSync(recursive: true);
-      } catch (_) {
-        // 忽略清理失败，不影响测试本身
-      }
-    }
-    final dir = Directory.systemTemp.createTempSync('ads_billtrack_test_hive_');
-    _testHiveDir = dir;
-    Hive.init(dir.path);
-    if (!Hive.isAdapterRegistered(AdRecordAdapter().typeId)) {
-      Hive.registerAdapter(AdRecordAdapter());
-    }
-    _adBox = await Hive.openBox<AdRecord>('ad_records_test');
   }
 
   // ── 用户信息 ──────────────────────────────────────────────────────
@@ -148,28 +110,6 @@ class StorageService {
   static bool hasFlag(String key) => _prefs.getBool(key) ?? false;
   static Future<void> setFlag(String key) => _prefs.setBool(key, true);
 
-  // ── 广告记录 ──────────────────────────────────────────────────────
-  static List<AdRecord> get adRecords =>
-      _adBox.values.toList()..sort((a, b) => b.watchedAt.compareTo(a.watchedAt));
-
-  static List<AdRecord> get todayAdRecords {
-    final now = DateTime.now();
-    return adRecords.where((r) {
-      return r.watchedAt.year == now.year &&
-             r.watchedAt.month == now.month &&
-             r.watchedAt.day == now.day;
-    }).toList();
-  }
-
-  static Future<void> saveAdRecord(String adType) async {
-    final record = AdRecord()
-      ..id          = const Uuid().v4()
-      ..adType      = adType
-      ..coinsEarned = 0
-      ..watchedAt   = DateTime.now();
-    await _adBox.put(record.id, record);
-  }
-
   // ── 自定义分类 ────────────────────────────────────────────────────
   static List<Map<String, dynamic>> get customCategories {
     final raw = _prefs.getString('custom_categories');
@@ -247,7 +187,6 @@ class StorageService {
   // ── 注销：清空全部本地数据 ─────────────────────────────────────────
   static Future<void> wipeAllData() async {
     await _billBox.clear();
-    await _adBox.clear();
     await _recurringBox.clear();
     await _accountBox.clear();
     await _prefs.clear();
