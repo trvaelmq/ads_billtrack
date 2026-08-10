@@ -97,3 +97,40 @@ class BlacklistItem {
   /// 本地集合去重/查找用的复合 key。
   String get key => '$type:$value';
 }
+
+/// GET /risk/ad-views 响应体 data.records 里的一项。
+class AdViewRecord {
+  final String watchTime;
+  final String ip;
+  final String deviceId;
+
+  const AdViewRecord({
+    required this.watchTime,
+    required this.ip,
+    required this.deviceId,
+  });
+
+  factory AdViewRecord.fromJson(Map<String, dynamic> json) => AdViewRecord(
+        watchTime: _str(json, 'watchTime') ?? '',
+        ip: _str(json, 'ip') ?? '',
+        deviceId: _str(json, 'deviceId') ?? '',
+      );
+}
+
+/// GET /risk/ad-views 响应体 data 部分。
+class AdViewRecordsResult {
+  final int total;
+  final List<AdViewRecord> records;
+
+  const AdViewRecordsResult({required this.total, required this.records});
+
+  factory AdViewRecordsResult.fromJson(Map<String, dynamic> json) =>
+      AdViewRecordsResult(
+        total: (json['total'] as num?)?.toInt() ?? 0,
+        records: (json['records'] as List?)
+                ?.whereType<Map<String, dynamic>>()
+                .map(AdViewRecord.fromJson)
+                .toList() ??
+            const <AdViewRecord>[],
+      );
+}
