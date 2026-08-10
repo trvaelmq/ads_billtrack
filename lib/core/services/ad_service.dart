@@ -9,7 +9,6 @@ import '../../router/app_pages.dart';
 import 'auth_service.dart';
 import 'risk/risk_gate_service.dart';
 import 'risk/risk_models.dart';
-import 'storage_service.dart';
 
 class AdService extends GetxService {
   static AdService get to => Get.find();
@@ -18,7 +17,6 @@ class AdService extends GetxService {
   static const _event = EventChannel(AdConfig.eventChannel);
 
   final RxBool isRewardedReady = false.obs;
-  final RxInt todayWatchCount = 0.obs; // 仅统计激励视频次数
   final RxInt cooldownRemaining = 0.obs;
   Timer? _cooldownTimer;
   Timer? _preRewardedTimer;
@@ -36,7 +34,6 @@ class AdService extends GetxService {
   void onInit() {
     super.onInit();
     debugPrint('[AdService] onInit');
-    todayWatchCount.value = StorageService.todayAdRecords.length;
     _event.receiveBroadcastStream().listen(_onAdEvent);
     loadRewardedAd();
     // App 重新打开：本地冷却计时在杀进程后会丢失，调一次 /risk/check 按后端权威状态恢复冷却。
@@ -230,12 +227,11 @@ class AdService extends GetxService {
     }
   }
 
-  /// 激励视频看完即记一条观看记录（不依赖风控结果，看了就算看了）；
-  /// 之后再调一次风控决定冷却时长：BLOCK 由后端删 token 下线账号，App 强制登出；
-  /// THROTTLE/STOP（达到上限）进冷却，不影响登录态、不影响已记的观看记录。
+  /// 激励视频看完后调一次风控决定冷却时长：BLOCK 由后端删 token 下线账号，App 强制登出；
+  /// THROTTLE/STOP（达到上限）进冷却，不影响登录态。观看记录由后端 /risk/ad-views 统计，
+  /// 客户端不再本地记录。
   Future<void> _onRewardedCompleted() async {
-    debugPrint('[AdService] rewarded.rewarded: recording watch, then checking risk gate');
-    await _recordWatch();
+    debugPrint('[AdService] rewarded.rewarded: checking risk gate');
     final result = await RiskGateService.to.checkRewardCompletion();
     switch (result.action) {
       case RiskAction.block:
@@ -274,11 +270,6 @@ class AdService extends GetxService {
       await AuthService.to.logout();
     }
     await Get.offAllNamed(Routes.main);
-  }
-
-  Future<void> _recordWatch() async {
-    await StorageService.saveAdRecord('rewarded');
-    todayWatchCount.value = StorageService.todayAdRecords.length;
   }
 
   /// 激励视频看完后的冷却：45~90 秒随机。
