@@ -275,9 +275,9 @@ class AdService extends GetxService {
   /// 激励视频看完后的冷却：45~90 秒随机。
   void _startCooldown() => _runCooldown(minSeconds: 45, maxSeconds: 90);
 
-  /// 注册并自动登录成功后触发一次的冷却：90~120 秒随机，避免刚注册即刷广告。
+  /// 注册并自动登录成功后触发一次的冷却：120~180 秒随机，避免刚注册即刷广告。
   void startPostRegistrationCooldown() =>
-      _runCooldown(minSeconds: 90, maxSeconds: 120);
+      _runCooldown(minSeconds: 120, maxSeconds: 180);
 
   void _runCooldown({required int minSeconds, required int maxSeconds}) {
     _cooldownTimer?.cancel();
