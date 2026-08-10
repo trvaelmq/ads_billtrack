@@ -1,23 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/risk/risk_models.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/theme/app_theme.dart';
-import '../../data/models/ad_record.dart';
 import 'history_controller.dart';
 import '../../widgets/staggered_list_item.dart';
 
 class HistoryView extends GetView<HistoryController> {
   const HistoryView({super.key});
-
-  static const _encouragements = [
-    '太棒了！坚持就是胜利🏆',
-    '记账达人，继续加油💪',
-    '记录越来越多了📒',
-    '积少成多，财富积累中📈',
-    '又多看了一个广告，不错👍',
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -51,89 +42,65 @@ class HistoryView extends GetView<HistoryController> {
             _UserCard(recordCount: records.length),
             const Divider(height: 1),
             Expanded(
-              child:
-                  records.isEmpty
-                      ? const Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('📺', style: TextStyle(fontSize: 60)),
-                            SizedBox(height: 12),
-                            Text(
-                              '还没有广告记录',
-                              style: TextStyle(color: AppTheme.textSecondary),
-                            ),
-                          ],
+              child: controller.isLoading.value
+                  ? const Center(child: CircularProgressIndicator())
+                  : controller.hasError.value
+                      ? _ErrorState(onRetry: controller.loadRecords)
+                      : RefreshIndicator(
+                          onRefresh: controller.loadRecords,
+                          child: records.isEmpty
+                              ? ListView(
+                                  children: const [
+                                    SizedBox(height: 120),
+                                    Center(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text('📺', style: TextStyle(fontSize: 60)),
+                                          SizedBox(height: 12),
+                                          Text(
+                                            '还没有广告记录',
+                                            style: TextStyle(color: AppTheme.textSecondary),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : ListView.builder(
+                                  padding: const EdgeInsets.only(top: 8, bottom: 24),
+                                  itemCount: records.length,
+                                  itemBuilder: (_, i) => StaggeredListItem(
+                                    index: i,
+                                    child: _RecordItem(record: records[i]),
+                                  ),
+                                ),
                         ),
-                      )
-                      : ListView.builder(
-                        padding: const EdgeInsets.only(top: 8, bottom: 24),
-                        itemCount: records.length,
-                        itemBuilder:
-                            (_, i) => StaggeredListItem(
-                              index: i,
-                              child: _RecordItem(
-                                record: records[i],
-                                onTap: () => _showDetail(context, records[i]),
-                              ),
-                            ),
-                      ),
             ),
           ],
         );
       }),
     );
   }
+}
 
-  void _showDetail(BuildContext context, AdRecord r) {
-    final msg =
-        _encouragements[r.watchedAt.millisecond % _encouragements.length];
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder:
-          (_) => Container(
-            width: context.width,
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(r.adTypeEmoji, style: const TextStyle(fontSize: 60)),
-                const SizedBox(height: 12),
-                Text(
-                  r.adTypeLabel,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  DateFormat('yyyy-MM-dd HH:mm:ss').format(r.watchedAt),
-                  style: const TextStyle(color: Colors.grey, fontSize: 13),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  msg,
-                  style: const TextStyle(color: AppTheme.textSecondary),
-                ),
-                const SizedBox(height: 16),
-              ],
-            ),
-          ),
-    );
-  }
+class _ErrorState extends StatelessWidget {
+  final Future<void> Function() onRetry;
+  const _ErrorState({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('⚠️', style: TextStyle(fontSize: 60)),
+            const SizedBox(height: 12),
+            const Text('加载失败，请重试', style: TextStyle(color: AppTheme.textSecondary)),
+            const SizedBox(height: 12),
+            TextButton(onPressed: onRetry, child: const Text('重新加载')),
+          ],
+        ),
+      );
 }
 
 // ── 用户信息卡 ─────────────────────────────────────────────────────
@@ -253,34 +220,33 @@ class _UserCard extends StatelessWidget {
 }
 
 class _RecordItem extends StatelessWidget {
-  final AdRecord record;
-  final VoidCallback onTap;
-  const _RecordItem({required this.record, required this.onTap});
+  final AdViewRecord record;
+  const _RecordItem({required this.record});
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        children: [
-          Text(record.adTypeEmoji, style: const TextStyle(fontSize: 28)),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Text(record.adTypeLabel,
-                //     style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                Text(
-                  DateFormat('yyyy-MM-dd HH:mm:ss').format(record.watchedAt),
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-              ],
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            const Text('🎬', style: TextStyle(fontSize: 28)),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    record.watchTime,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${record.ip}  ${record.deviceId}',
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    ),
-  );
+          ],
+        ),
+      );
 }
