@@ -115,16 +115,11 @@ class _UserCard extends StatelessWidget {
     return StorageService.userId;
   }
 
-  // 邀请码；没有邀请码时回退昵称/用户名/「用户」（不再展示手机号）
+  // 邀请码；没有邀请码时显示 --
   String get _displayName {
-    final user = AuthService.to.userInfo.value;
-    if (user == null) return '用户';
-    if (user.invitationCode != null && user.invitationCode!.isNotEmpty) {
-      return '邀请码 ${user.invitationCode}';
-    }
-    if (user.nickname.isNotEmpty) return user.nickname;
-    if (user.username.isNotEmpty) return user.username;
-    return '用户';
+    final code = AuthService.to.userInfo.value?.invitationCode;
+    if (code != null && code.isNotEmpty) return '邀请码 $code';
+    return '--';
   }
 
   @override
@@ -231,19 +226,9 @@ class _RecordItem extends StatelessWidget {
             const Text('🎬', style: TextStyle(fontSize: 28)),
             const SizedBox(width: 14),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    record.watchTime,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${record.ip}  ${record.deviceId}',
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                ],
+              child: Text(
+                record.watchTime,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
               ),
             ),
           ],

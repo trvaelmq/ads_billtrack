@@ -2,7 +2,7 @@ name: ads_billtrack
 description: "智探眼 — 财务健康体检与深度分析"
 publish_to: 'none'
 
-version: 1.1.0+13
+version: 1.1.2+17
 
 environment:
   sdk: ^3.7.2
