@@ -25,6 +25,15 @@ class RiskGateService extends GetxService {
   /// 系统版本（如 iOS 17.4 / Android 14），供注册/登录接口透传。init() 完成前或获取失败时为 null。
   String? get systemVersion => _deviceSignals?['systemVersion'] as String?;
 
+  /// 设备指纹 IDFV（仅 iOS 有值），供注册接口透传。init() 完成前或获取失败时为 null。
+  String? get idfv => _deviceSignals?['idfv'] as String?;
+
+  /// 是否越狱（仅基础检测，可被 hook 绕过），供注册接口透传。取不到时为 null。
+  bool? get jailbroken => _deviceSignals?['jailbroken'] as bool?;
+
+  /// 是否模拟器，供注册接口透传。取不到时为 null。
+  bool? get emulator => _deviceSignals?['emulator'] as bool?;
+
   static const _method = MethodChannel(AdConfig.methodChannel);
 
   final ApiClient _api;
@@ -227,6 +236,11 @@ class RiskGateService extends GetxService {
     final signals = <String, dynamic>{
       // idfv：iOS 为真实 identifierForVendor（无需 ATT 授权）；Android 无此概念，取不到时不传。
       if (deviceSignals?['idfv'] != null) 'idfv': deviceSignals!['idfv'],
+      // jailbroken/emulator：仅基础检测，取不到时不传，不强行兜底 false（避免误导风控）。
+      if (deviceSignals?['jailbroken'] != null)
+        'jailbroken': deviceSignals!['jailbroken'],
+      if (deviceSignals?['emulator'] != null)
+        'emulator': deviceSignals!['emulator'],
       if (deviceSignals?['deviceModel'] != null)
         'deviceModel': deviceSignals!['deviceModel'],
       if (deviceSignals?['systemVersion'] != null)

@@ -146,7 +146,46 @@ import CoreTelephony
         }
     }
 
-    /// 风控网关 signals 字段用：机型标识/系统版本/是否插卡/运营商。
+    /// 越狱基础检测：查常见越狱工具残留路径 + 尝试写沙盒外目录。
+    /// 已知局限：Shadow/A-Bypass 等隐藏越狱工具会 hook 这类检测使其返回 false，
+    /// 只作为基础风控信号，不作为强保证（详见 App Attest 方案）。
+    private func isJailbroken() -> Bool {
+        #if targetEnvironment(simulator)
+        return false
+        #else
+        let suspiciousPaths = [
+            "/Applications/Cydia.app",
+            "/Applications/Sileo.app",
+            "/Library/MobileSubstrate/MobileSubstrate.dylib",
+            "/bin/bash",
+            "/usr/sbin/sshd",
+            "/etc/apt",
+            "/private/var/lib/apt",
+        ]
+        if suspiciousPaths.contains(where: { FileManager.default.fileExists(atPath: $0) }) {
+            return true
+        }
+        let testPath = "/private/jailbreak_test_\(UUID().uuidString).txt"
+        do {
+            try "test".write(toFile: testPath, atomically: true, encoding: .utf8)
+            try FileManager.default.removeItem(atPath: testPath)
+            return true
+        } catch {
+            return false
+        }
+        #endif
+    }
+
+    /// 是否运行在模拟器：编译期常量，可靠。
+    private func isEmulator() -> Bool {
+        #if targetEnvironment(simulator)
+        return true
+        #else
+        return false
+        #endif
+    }
+
+    /// 风控网关 signals 字段用：机型标识/系统版本/是否插卡/运营商/是否越狱/是否模拟器。
     /// 运营商名 iOS 16 起系统 API 基本恒返回 nil（Apple 出于隐私移除），属已知限制，尽力而为。
     private func currentDeviceSignals() -> [String: Any] {
         var systemInfo = utsname()
@@ -168,6 +207,8 @@ import CoreTelephony
             "simPresent": simPresent,
             "simCarrier": carriers.first?.carrierName ?? NSNull(),
             "idfv": UIDevice.current.identifierForVendor?.uuidString ?? NSNull(),
+            "jailbroken": isJailbroken(),
+            "emulator": isEmulator(),
         ]
     }
 }

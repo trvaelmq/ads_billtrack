@@ -47,6 +47,18 @@ class AuthService extends GetxService {
     return version;
   }
 
+  /// 设备指纹 IDFV（仅 iOS 有值），注册时透传。RiskGateService 未就绪时为 null。
+  String? get _idfv =>
+      Get.isRegistered<RiskGateService>() ? RiskGateService.to.idfv : null;
+
+  /// 是否越狱，注册时透传。RiskGateService 未就绪时为 null。
+  bool? get _jailbroken =>
+      Get.isRegistered<RiskGateService>() ? RiskGateService.to.jailbroken : null;
+
+  /// 是否模拟器，注册时透传。RiskGateService 未就绪时为 null。
+  bool? get _emulator =>
+      Get.isRegistered<RiskGateService>() ? RiskGateService.to.emulator : null;
+
   @override
   void onInit() {
     super.onInit();
@@ -100,6 +112,9 @@ class AuthService extends GetxService {
       if (_deviceId != null) 'deviceId': _deviceId,
       if (_deviceModel != null) 'deviceModel': _deviceModel,
       if (_systemVersion != null) 'systemVersion': _systemVersion,
+      if (_idfv != null) 'idfv': _idfv,
+      if (_jailbroken != null) 'jailbroken': _jailbroken,
+      if (_emulator != null) 'emulator': _emulator,
     };
     final result = await _api.postJson<void>('/api/auth/register', body);
     if (!result.success) return result;
@@ -171,6 +186,9 @@ class AuthService extends GetxService {
         if (_deviceId != null) 'deviceId': _deviceId,
         if (_deviceModel != null) 'deviceModel': _deviceModel,
         if (_systemVersion != null) 'systemVersion': _systemVersion,
+        if (_idfv != null) 'idfv': _idfv,
+        if (_jailbroken != null) 'jailbroken': _jailbroken,
+        if (_emulator != null) 'emulator': _emulator,
       },
       parser: (d) => d as Map<String, dynamic>,
     );
