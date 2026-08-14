@@ -59,6 +59,14 @@ class AuthService extends GetxService {
   bool? get _emulator =>
       Get.isRegistered<RiskGateService>() ? RiskGateService.to.emulator : null;
 
+  /// ip/timestamp/nonce/signature/signals：与 /risk/check、/risk/event 同一套风控字段，
+  /// 让登录/注册请求也带上防重放签名。RiskGateService 未就绪或 deviceId 不可用时返回 null
+  /// （调用方用 `...?` 展开，不传即可，不阻断正常登录注册）。
+  Future<Map<String, dynamic>?> _riskFields() {
+    if (!Get.isRegistered<RiskGateService>()) return Future.value(null);
+    return RiskGateService.to.buildRiskFields();
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -115,6 +123,7 @@ class AuthService extends GetxService {
       if (_idfv != null) 'idfv': _idfv,
       if (_jailbroken != null) 'jailbroken': _jailbroken,
       if (_emulator != null) 'emulator': _emulator,
+      ...?await _riskFields(),
     };
     final result = await _api.postJson<void>('/api/auth/register', body);
     if (!result.success) return result;
@@ -189,6 +198,7 @@ class AuthService extends GetxService {
         if (_idfv != null) 'idfv': _idfv,
         if (_jailbroken != null) 'jailbroken': _jailbroken,
         if (_emulator != null) 'emulator': _emulator,
+        ...?await _riskFields(),
       },
       parser: (d) => d as Map<String, dynamic>,
     );

@@ -223,6 +223,32 @@ class RiskGateService extends GetxService {
     String? adSlotId,
     Map<String, dynamic>? extraSignals,
   }) async {
+    final common = await _buildSignedCommon(
+      deviceId: deviceId,
+      extraSignals: extraSignals,
+    );
+    return {
+      'deviceId': deviceId,
+      if (adSlotId != null) 'adSlotId': adSlotId,
+      'eventType': eventType,
+      'adFormat': adFormat,
+      ...common,
+    };
+  }
+
+  /// 登录/注册接口透传用：与 /risk/check、/risk/event 同一套 ip/timestamp/nonce/signature/signals，
+  /// 让登录/注册请求也能被风控核验，不再是纯裸奔的账号接口。
+  /// deviceId 不可用时返回 null，调用方应跳过这些字段（与风控请求一致的降级策略：宁可不传，不传假值）。
+  Future<Map<String, dynamic>?> buildRiskFields() async {
+    final deviceId = _deviceId;
+    if (deviceId == null) return null;
+    return _buildSignedCommon(deviceId: deviceId);
+  }
+
+  Future<Map<String, dynamic>> _buildSignedCommon({
+    required String deviceId,
+    Map<String, dynamic>? extraSignals,
+  }) async {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final nonce = const Uuid().v4();
     final signature = RiskSigner.sign(
@@ -252,11 +278,7 @@ class RiskGateService extends GetxService {
       if (extraSignals != null) ...extraSignals,
     };
     return {
-      'deviceId': deviceId,
       if (ip != null) 'ip': ip,
-      if (adSlotId != null) 'adSlotId': adSlotId,
-      'eventType': eventType,
-      'adFormat': adFormat,
       'timestamp': timestamp,
       'nonce': nonce,
       'signature': signature,
