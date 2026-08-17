@@ -148,7 +148,10 @@ class AdService extends GetxService {
         return;
       case RiskAction.throttle:
         debugPrint('[AdService] ad denied by risk check: ${result.action} ${result.reason}');
-        _startCooldown();
+        _runCooldown(
+          minSeconds: result.resetInSeconds ?? 45,
+          maxSeconds: result.resetInSeconds ?? 90,
+        );
         _rewardedFlowInProgress = false;
         return;
       case RiskAction.pass:
@@ -242,7 +245,10 @@ class AdService extends GetxService {
       case RiskAction.throttle:
         debugPrint(
             '[AdService] reward denied by risk gate: ${result.action} ${result.reason}');
-        _startCooldown();
+        _runCooldown(
+          minSeconds: result.resetInSeconds ?? 45,
+          maxSeconds: result.resetInSeconds ?? 90,
+        );
         return;
       case RiskAction.stop:
         debugPrint(
@@ -258,7 +264,10 @@ class AdService extends GetxService {
       case RiskAction.pass:
       case RiskAction.review:
       case RiskAction.shadow:
-        _startCooldown();
+        _runCooldown(
+          minSeconds: result.resetInSeconds ?? 45,
+          maxSeconds: result.resetInSeconds ?? 90,
+        );
     }
   }
 
@@ -271,9 +280,6 @@ class AdService extends GetxService {
     }
     await Get.offAllNamed(Routes.main);
   }
-
-  /// 激励视频看完后的冷却：45~90 秒随机。
-  void _startCooldown() => _runCooldown(minSeconds: 45, maxSeconds: 90);
 
   /// 注册并自动登录成功后触发一次的冷却：120~180 秒随机，避免刚注册即刷广告。
   void startPostRegistrationCooldown() =>

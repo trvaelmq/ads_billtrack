@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../data/models/user_info.dart';
@@ -36,16 +35,10 @@ class AuthService extends GetxService {
   String? get _deviceModel =>
       Get.isRegistered<RiskGateService>() ? RiskGateService.to.deviceModel : null;
 
-  /// 系统版本，注册/登录时透传给后端；原生侧只给纯数字（如 17.4），这里按平台拼成
-  /// "iOS 17.4" / "Android 14"，避免后端拿到裸数字分不清平台。RiskGateService 未就绪时为 null。
-  String? get _systemVersion {
-    if (!Get.isRegistered<RiskGateService>()) return null;
-    final version = RiskGateService.to.systemVersion;
-    if (version == null) return null;
-    if (Platform.isIOS) return 'iOS $version';
-    if (Platform.isAndroid) return 'Android $version';
-    return version;
-  }
+  /// 系统版本，注册/登录时透传给后端；纯数字（如 17.4），不带平台前缀。
+  /// RiskGateService 未就绪时为 null。
+  String? get _systemVersion =>
+      Get.isRegistered<RiskGateService>() ? RiskGateService.to.systemVersion : null;
 
   /// 设备指纹 IDFV（仅 iOS 有值），注册时透传。RiskGateService 未就绪时为 null。
   String? get _idfv =>
@@ -58,6 +51,10 @@ class AuthService extends GetxService {
   /// 是否模拟器，注册时透传。RiskGateService 未就绪时为 null。
   bool? get _emulator =>
       Get.isRegistered<RiskGateService>() ? RiskGateService.to.emulator : null;
+
+  /// 是否插卡，注册/登录时透传（api.md 顶层必填字段）。RiskGateService 未就绪时为 null。
+  bool? get _simPresent =>
+      Get.isRegistered<RiskGateService>() ? RiskGateService.to.simPresent : null;
 
   /// ip/timestamp/nonce/signature/signals：与 /risk/check、/risk/event 同一套风控字段，
   /// 让登录/注册请求也带上防重放签名。RiskGateService 未就绪或 deviceId 不可用时返回 null
@@ -121,6 +118,7 @@ class AuthService extends GetxService {
       if (_deviceModel != null) 'deviceModel': _deviceModel,
       if (_systemVersion != null) 'systemVersion': _systemVersion,
       if (_idfv != null) 'idfv': _idfv,
+      if (_simPresent != null) 'simPresent': _simPresent,
       if (_jailbroken != null) 'jailbroken': _jailbroken,
       if (_emulator != null) 'emulator': _emulator,
       ...?await _riskFields(),
@@ -196,6 +194,7 @@ class AuthService extends GetxService {
         if (_deviceModel != null) 'deviceModel': _deviceModel,
         if (_systemVersion != null) 'systemVersion': _systemVersion,
         if (_idfv != null) 'idfv': _idfv,
+        if (_simPresent != null) 'simPresent': _simPresent,
         if (_jailbroken != null) 'jailbroken': _jailbroken,
         if (_emulator != null) 'emulator': _emulator,
         ...?await _riskFields(),

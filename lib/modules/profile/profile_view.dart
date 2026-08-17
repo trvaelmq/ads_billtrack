@@ -86,7 +86,7 @@ class ProfileView extends GetView<ProfileController> {
           if (AdConfig.profileFeedPosId.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
-              child: NativeExpressAdWidget(posId: AdConfig.profileFeedPosId, height: 0),
+              child: NativeExpressAdWidget(posId: AdConfig.profileFeedPosId, height: 0, tabIndex: 3),
             ),
           // 可滚动列表区域
           Expanded(

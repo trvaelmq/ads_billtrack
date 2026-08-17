@@ -89,7 +89,7 @@ class HomeView extends StatelessWidget {
                   // 首页头部横幅广告（用首页专属广告位，避免与统计页复用同一 posId 冲突）
                   Padding(
                     padding: const EdgeInsets.fromLTRB(0, 0, 0, 12),
-                    child: BannerAdWidget(height: 60, posId: AdConfig.bannerHomePosId),
+                    child: BannerAdWidget(height: 60, posId: AdConfig.bannerHomePosId, tabIndex: 0),
                   ),
                   // 到期账单提醒 Banner
                   Obx(() {

@@ -57,11 +57,16 @@ class NativeExpressContainerView: UIView {
         self.channel = channel
         super.init(frame: frame)
         // 兜底：若渲染完成推送 resize 时 Dart 端 handler 还未注册好导致消息丢失，
-        // Dart 会在注册完成后主动查询一次当前高度
+        // Dart 会在注册完成后主动查询一次当前高度；reload 供 Flutter 侧在上次加载
+        // 失败、Tab 切回可见时主动触发一次重试（常驻 Tab 页面不会自然重新创建 view）。
         channel.setMethodCallHandler { [weak self] call, result in
-            if call.method == "queryHeight" {
+            switch call.method {
+            case "queryHeight":
                 result(self?.lastHeight.map { Double($0) } ?? -1)
-            } else {
+            case "reload":
+                self?.loadAd()
+                result(nil)
+            default:
                 result(FlutterMethodNotImplemented)
             }
         }
@@ -73,7 +78,15 @@ class NativeExpressContainerView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        guard nativeManager == nil, bounds.width > 0, let vc = viewController else { return }
+        guard nativeManager == nil, bounds.width > 0 else { return }
+        loadAd()
+    }
+
+    private func loadAd() {
+        guard let vc = viewController else { return }
+        heightObservation?.invalidate()
+        heightObservation = nil
+        subviews.forEach { $0.removeFromSuperview() }
 
         let manager = SFNativeManager()
         manager.mediaId = posId
@@ -89,9 +102,10 @@ class NativeExpressContainerView: UIView {
 
 extension NativeExpressContainerView: SFNativeDelegate {
     func nativeAdDidRenderSuccess(withADView nativeAdView: UIView) {
-        // 测量渲染视图真实高度，按内容尺寸布局并回传 Flutter 自适应
-        var h = nativeAdView.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).height
-        if h <= 1 { h = nativeAdView.sizeThatFits(CGSize(width: bounds.width, height: 0)).height }
+        // 真实高度渲染时 SDK 已经算好放在 bounds/frame 里了（非 Auto Layout 视图，
+        // systemLayoutSizeFitting 测不出东西，实测恒为 0，故不用它），直接读即可。
+        var h = nativeAdView.bounds.height
+        if h <= 1 { h = nativeAdView.frame.height }
         if h <= 1 { h = adHeight }
         nativeAdView.frame = CGRect(x: 0, y: 0, width: bounds.width, height: h)
         addSubview(nativeAdView)
@@ -105,6 +119,7 @@ extension NativeExpressContainerView: SFNativeDelegate {
     }
     func nativeAdDidFailed(_ error: Error) {
         debugPrint("[NativeExpress] 加载失败 \(error.localizedDescription)")
+        channel.invokeMethod("loadFailed", arguments: error.localizedDescription)
     }
     func nativeAdDidClose(withADView nativeAdView: UIView) {
         heightObservation?.invalidate()

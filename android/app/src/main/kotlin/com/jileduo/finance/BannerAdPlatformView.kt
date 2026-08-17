@@ -30,18 +30,32 @@ class BannerAdViewFactory(
 // 注意: MgBannerManager 为单例，同屏最多展示一个 Banner（当前 App 单屏仅一个 Banner，满足）
 class BannerAdPlatformView(
     private val activity: Activity,
-    posId: String,
+    private val posId: String,
     private val channel: MethodChannel,
 ) : PlatformView {
 
     private val container = FrameLayout(activity)
 
     init {
+        // reload 供 Flutter 侧在上次加载失败、Tab 切回可见时主动触发一次重试
+        // （常驻 Tab 页面不会自然重新创建 view）。
+        channel.setMethodCallHandler { call, result ->
+            if (call.method == "reload") { loadAd(); result.success(null) }
+            else result.notImplemented()
+        }
+        loadAd()
+    }
+
+    private fun loadAd() {
+        container.removeAllViews()
         MyApplication.runWhenReady {
             MgBannerManager.getInstance().loadBanner(activity, posId, object : OnBannerAdListener {
                 override fun onReceived(view: View?) {
                     Log.d("MG_AD", "banner onReceived")
-                    view ?: return
+                    if (view == null) {
+                        channel.invokeMethod("loadFailed", "onReceived: view=null")
+                        return
+                    }
                     container.removeAllViews()
                     // WRAP_CONTENT 让 banner 保持自身模板高度，再把真实高度回传 Flutter 自适应
                     container.addView(
@@ -62,6 +76,7 @@ class BannerAdPlatformView(
                 }
                 override fun onError(message: String?) {
                     Log.e("MG_AD", "banner onError: $message")
+                    channel.invokeMethod("loadFailed", message ?: "onError")
                 }
             })
         }

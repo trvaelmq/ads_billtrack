@@ -20,16 +20,12 @@ class MainView extends GetView<MainController> {
     ];
 
     return Obx(() => Scaffold(
-          body: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 150),
-            switchInCurve: Curves.easeIn,
-            switchOutCurve: Curves.easeOut,
-            transitionBuilder: (child, animation) =>
-                FadeTransition(opacity: animation, child: child),
-            child: KeyedSubtree(
-              key: ValueKey(controller.currentIndex.value),
-              child: pages[controller.currentIndex.value],
-            ),
+          // IndexedStack：四个 Tab 页面常驻内存，切 Tab 只是切换显示/隐藏，
+          // 不会销毁重建——避免每次切回来时页面里的广告（横幅/信息流）跟着
+          // 重新加载一遍，广告位应该只在 App 真正重启时才重新请求。
+          body: IndexedStack(
+            index: controller.currentIndex.value,
+            children: pages,
           ),
           bottomNavigationBar: Container(
             decoration: BoxDecoration(

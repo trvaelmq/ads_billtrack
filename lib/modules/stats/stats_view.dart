@@ -44,59 +44,71 @@ class StatsView extends GetView<StatsController> {
           ),
         ],
       ),
-      body: Obx(() {
-        final expByCat = bill.expenseByCategory;
-        final last6 = bill.last6MonthsStats;
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(0, 12, 0, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                alignment: Alignment.centerRight,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => Get.toNamed('/history'),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                    child: Text(
-                      '统计记录',
-                      style: TextStyle(
-                        color: Color(0xFFD2911E),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                      ),
+      // 注意：不要在这里包一层大 Obx——Banner/信息流广告和统计数据无关，
+      // 包在同一个 Obx 里会导致切月份/记账触发的数据刷新连带把广告 widget
+      // 一起拖进 rebuild。只在真正依赖 expByCat/last6MonthsStats 的两个
+      // 图表 widget 外层局部包 Obx，广告和静态布局留在外面，不随数据变化重建。
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(0, 12, 0, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+              alignment: Alignment.centerRight,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Get.toNamed('/history'),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                  child: Text(
+                    '统计记录',
+                    style: TextStyle(
+                      color: Color(0xFFD2911E),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 4),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(8)),
-                ),
-                child: const BannerAdWidget(height: 60),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.all(Radius.circular(8)),
               ),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                child: _ExpensePieChart(expByCat: expByCat),
-              ), 
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                child: _BarChartCard(last6: last6),
+              child: const BannerAdWidget(
+                key: ValueKey('stats_banner_ad'),
+                height: 60,
               ),
-              const SizedBox(height: 4),
-              NativeExpressAdWidget(posId: AdConfig.detailBannerPosId),
-              const SizedBox(height: 12),
-            ],
-          ),
-        );
-      }),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+              child: Obx(() => _ExpensePieChart(expByCat: bill.expenseByCategory)),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+              child: Obx(() {
+                // last6MonthsStats 本身不读任何 .obs（直接查 StorageService），
+                // 手动订阅 bills 才能让账单变化时这里跟着重新计算，否则 Obx
+                // 检测不到任何响应式依赖会直接抛异常（GetX 的强制校验）。
+                bill.bills.length;
+                return _BarChartCard(last6: bill.last6MonthsStats);
+              }),
+            ),
+            const SizedBox(height: 4),
+            NativeExpressAdWidget(
+              key: const ValueKey('stats_native_express_ad'),
+              posId: AdConfig.detailBannerPosId,
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
     );
   }
 }

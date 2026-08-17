@@ -48,14 +48,29 @@ class BannerContainerView: UIView {
         self.viewController = viewController
         self.channel = channel
         super.init(frame: frame)
+        // reload 供 Flutter 侧在上次加载失败、Tab 切回可见时主动触发一次重试
+        // （常驻 Tab 页面不会自然重新创建 view）。
+        channel.setMethodCallHandler { [weak self] call, result in
+            if call.method == "reload" {
+                self?.loadAd()
+                result(nil)
+            } else {
+                result(FlutterMethodNotImplemented)
+            }
+        }
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        guard bannerManager == nil, bounds.width > 0, bounds.height > 0,
-              let vc = viewController else { return }
+        guard bannerManager == nil, bounds.width > 0, bounds.height > 0 else { return }
+        loadAd()
+    }
+
+    private func loadAd() {
+        guard let vc = viewController else { return }
+        subviews.forEach { $0.removeFromSuperview() }
 
         let manager = SFBannerManager()
         manager.mediaId = posId
@@ -88,6 +103,7 @@ extension BannerContainerView: SFBannerDelegate {
     }
     func bannerAdDidFailed(_ error: Error) {
         debugPrint("[Banner] 加载失败 \(error.localizedDescription)")
+        channel.invokeMethod("loadFailed", arguments: error.localizedDescription)
     }
     func bannerAdDidClose() {
         subviews.forEach { $0.removeFromSuperview() }

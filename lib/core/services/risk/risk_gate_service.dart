@@ -34,6 +34,9 @@ class RiskGateService extends GetxService {
   /// 是否模拟器，供注册接口透传。取不到时为 null。
   bool? get emulator => _deviceSignals?['emulator'] as bool?;
 
+  /// 是否插卡，供注册/登录接口透传（api.md 顶层必填字段）。取不到时为 null。
+  bool? get simPresent => _deviceSignals?['simPresent'] as bool?;
+
   static const _method = MethodChannel(AdConfig.methodChannel);
 
   final ApiClient _api;
@@ -207,8 +210,8 @@ class RiskGateService extends GetxService {
       }
       final result = DecisionResult.fromJson(data);
       debugPrint(
-          '[RiskGate] request: result action=${result.action} reason=${result.reason} '
-          'confidence=${result.confidence}/${result.confidenceLevel} requestId=${result.requestId}');
+          '[RiskGate] request: result action=${result.action} message=${result.message} '
+          'resetInSeconds=${result.resetInSeconds} requestId=${result.requestId}');
       return result;
     } catch (e) {
       debugPrint('[RiskGate] request failed, fallback pass: $e');

@@ -39,7 +39,7 @@ class NativeExpressAdViewFactory(
 // 芒果信息流为自渲染：SDK 返回 MgNativeInfo 数据，绑定到自建布局后 prepare 注册点击
 class NativeExpressAdPlatformView(
     private val activity: Activity,
-    posId: String,
+    private val posId: String,
     private val channel: MethodChannel,
 ) : PlatformView {
 
@@ -53,31 +53,43 @@ class NativeExpressAdPlatformView(
 
     init {
         // 兜底：若渲染完成推送 resize 时 Dart 端 handler 还未注册好导致消息丢失，
-        // Dart 会在注册完成后主动查询一次当前高度
+        // Dart 会在注册完成后主动查询一次当前高度；reload 供 Flutter 侧在上次加载
+        // 失败、Tab 切回可见时主动触发一次重试（常驻 Tab 页面不会自然重新创建 view）。
         channel.setMethodCallHandler { call, result ->
-            if (call.method == "queryHeight") {
-                result.success(lastHeight ?: -1.0)
-            } else {
-                result.notImplemented()
+            when (call.method) {
+                "queryHeight" -> result.success(lastHeight ?: -1.0)
+                "reload" -> { loadAd(); result.success(null) }
+                else -> result.notImplemented()
             }
         }
         Log.d("MG_AD", "flow PlatformView 创建 posId=$posId sdkReady=${MyApplication.sdkReady}")
+        loadAd()
+    }
+
+    private fun loadAd() {
+        nativeInfo?.release()
+        nativeInfo = null
+        container.removeAllViews()
         MyApplication.runWhenReady {
             Log.d("MG_AD", "flow 开始 loadFlow posId=$posId")
             val adView = View.inflate(activity, R.layout.mg_native_ad, null)
-            MgFlowManager.getInstance().loadFlow(activity, posId, adView, object : OnNativeLoadAdListener {
+            MgFlowManager.getInstance().loadFlow(activity, posId, container, adView, object : OnNativeLoadAdListener {
                 override fun onNativeLoaded(adInfo: MgNativeInfo?) {
                     Log.d(
                         "MG_AD",
                         "flow onNativeLoaded adInfo=${adInfo != null} express=${adInfo?.isNativeExpress} " +
                             "title=${adInfo?.title} mediaView=${adInfo?.adMediaView != null}"
                     )
-                    adInfo ?: return
+                    if (adInfo == null) {
+                        channel.invokeMethod("loadFailed", "onNativeLoaded: adInfo=null")
+                        return
+                    }
                     nativeInfo = adInfo
                     activity.runOnUiThread { bindAndShow(adInfo) }
                 }
                 override fun onNativeAdFail(errorInfo: String?) {
                     Log.e("MG_AD", "flow onNativeAdFail: $errorInfo")
+                    channel.invokeMethod("loadFailed", errorInfo ?: "onNativeAdFail")
                 }
             })
         }
@@ -87,6 +99,7 @@ class NativeExpressAdPlatformView(
         val adRoot = adInfo.adMediaView
         if (adRoot == null) {
             Log.e("MG_AD", "flow bindAndShow adMediaView 为 null,无法展示")
+            channel.invokeMethod("loadFailed", "bindAndShow: adMediaView=null")
             return
         }
         (adRoot.parent as? ViewGroup)?.removeView(adRoot)
@@ -114,6 +127,7 @@ class NativeExpressAdPlatformView(
                 override fun onAdVideoProgress() {}
                 override fun onAdFailed(errorInfo: String?) {
                     Log.e("MG_AD", "flow express onAdFailed: $errorInfo")
+                    channel.invokeMethod("loadFailed", errorInfo ?: "express onAdFailed")
                 }
             })
             // express 模板由 SDK 自渲染，必须调用 prepare() 才会触发渲染并注册曝光/点击，
